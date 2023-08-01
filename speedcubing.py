@@ -1,7 +1,61 @@
+
+import wikitextparser as wtp
+import pywikibot
 import requests
 import json
 import bs4
 import io
+
+disciplines = {'2x2x2': '2x2x2 Cube', 
+               '3x3x3': '3x3x3 Cube', 
+               '3x3x3blind': '3x3x3 Blindfolded', 
+               '3x3x3onehanded': '3x3x3 One-Handed', 
+               '3x3x3withfeet': '3x3x3 With Feet', 
+               '3x3x3multiblind': '3x3x3 Multi-Blind', 
+               '3x3x3fewestmoves': '3x3x3 Fewest Moves', 
+               '4x4x4': '4x4x4 Cube', 
+               '4x4x4blind': '4x4x4 Blindfolded', 
+               '5x5x5': '5x5x5 Cube', 
+               '5x5x5blind': '5x5x5 Blindfolded', 
+               '6x6x6': '6x6x6 Cube', 
+               '7x7x7': '7x7x7 Cube', 
+               'Pyraminx': 'Pyraminx', 
+               'Megaminx': 'Megaminx', 
+               'Skewb': 'Skewb', 
+               'Square1': 'Square-1', 
+               'Clock': 'Clock'}
+
+def editWiki(data: dict[str, tuple[list[dict], list[dict]]], parser, pagename: str):
+    site = pywikibot.Site('de', 'wikipedia')
+    site.login()
+    assert site.logged_in()
+    page = pywikibot.Page(site, pagename)
+    lastEdit = [cell.plain_text().strip('| \n') for cell in wtp.parse(page.getVersionHistoryTable(total=1)).tables[0].cells(row=1)]
+    if lastEdit[2] == 'DerIchBot' or input(f'{lastEdit[2]} hat die Seite {pagename} zuletzt geändert. Trotzdem fortfahren? ').strip().lower() in ['y', 'j', 'ja', 'yes']:
+        newText = generatePage(data, parser)
+        if newText != page.text:
+            print('Update page ...')
+            page.text = newText
+            page.save(botflag=True, summary='Bot: Tests ...')
+        else:
+            print('Page content did not change.')
+    else:
+        print('skipped')
+    site.logout()
+
+def generatePage(data: dict[str, tuple[list[dict], list[dict]]], parser):
+    return '<onlyinclude><includeonly>\n  {{#switch: {{{2}}}\n    | Single = {{#switch: {{{1}}}' + ''.join(['\n      | '+i.ljust(16)+' = '+parser(data.get(disciplines.get(i))[0]) for i in disciplines.keys()]) + '\n      | #default         = ' + parseError('Parameter 1 ungültig!') + ' }}\n    | Average = {{#switch: {{{1}}}' + ''.join(['\n      | '+i.ljust(16)+' = '+parser(data.get(disciplines.get(i))[1]) for i in disciplines.keys()]) + '\n      | #default         = ' + parseError('Parameter 1 ungültig!') + ' }}\n    | #default = ' + parseError('Parameter 2 ungültig!') + '\n  }}\n</includeonly></onlyinclude>\n\n{{Dokumentation}}'
+
+def parseDates(data: list[dict[str, str]]):
+    if data == []: return parseError('Keine Daten für diese Parameterkombination.')
+    months = {'Jan': 'Januar', 'Feb': 'Februar', 'Mar': 'März', 'Apr': 'April', 'May': 'Mai', 'Jun': 'Juni',
+              'Jul': 'Juli', 'Aug': 'August', 'Sep': 'September', 'Oct': 'Oktober', 'Nov': 'November', 'Dec': 'Dezember'}
+    dates = [i.get('date') for i in data]
+    dates = (['', '', '', ''] + [f'{i[4:6]}. {months.get(i[0:3])} {i[8:12]}' for i in dates])[-4:]
+    return '{{#switch: {{{3}}} |4=' + dates[0] + ' |3='+ dates[1] + ' |2='+ dates[2] + ' |#default=' + dates[3] + '}}'
+
+def parseError(text: str):
+    return f'<span class="error">{text}</span> [[Kategorie:Wikipedia:Vorlagenfehler/Speedcubing]]'
 
 def stripTag(tag: bs4.element.Tag | None):
     if tag == None:
@@ -42,3 +96,4 @@ if __name__ == '__main__':
     data = scrape()
     with io.open('test.json', 'w', encoding='utf8') as file:
         json.dump(data, file, indent=2, ensure_ascii=False)
+    editWiki(data, parseDates, 'Benutzer:DerIchBot/Spielwiese/Vorlage:Speedcubing-Rekorddatum')
