@@ -32,8 +32,6 @@ def editWiki(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]],
              pagename: str, 
              forcedSummary: str|None = None):
     site = pywikibot.Site('de', 'wikipedia')
-    site.login()
-    assert site.logged_in()
     page = pywikibot.Page(site, pagename)
     lastEdit = [cell.plain_text().strip('| \n') for cell in wtp.parse(page.getVersionHistoryTable(total=1)).tables[0].cells(row=1)]
     if lastEdit[2] == 'DerIchBot' or input(f'{lastEdit[2]} hat die Seite {pagename} zuletzt geändert. Trotzdem fortfahren? ').strip().lower() in ['y', 'j', 'ja', 'yes']:
@@ -42,12 +40,14 @@ def editWiki(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]],
             print('Update page ...')
             page.text = newText
             summary = f'Bot: Aktualisiere Rekord{"e" if len(changedDisciplines)>1 else ""} für {" und ".join(changedDisciplines)}.'
+            site.login()
+            assert site.logged_in()
             page.save(botflag=True, minor=False, summary=(summary if forcedSummary==None else f'Bot: {forcedSummary}'))
+            site.logout()
         else:
             print('Page content did not change.')
     else:
         print('skipped')
-    site.logout()
 
 def generatePage(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]], parser: typing.Callable[[list[dict[str, str]], str], str]):
     return '<onlyinclude><includeonly><!--\n-->{{#switch: {{{2}}}<!--\n  -->| Single = {{#switch: {{{1}}}' + ''.join(['<!--\n    -->| '+i.ljust(16)+' = '+parser(data.get(disciplines.get(i))[0], i) for i in disciplines.keys()]) + '<!--\n    -->| #default         = ' + parseError('Parameter 1 ungültig!') + ' }}<!--\n  -->| Average = {{#switch: {{{1}}}' + ''.join(['<!--\n    -->| '+i.ljust(16)+' = '+parser(data.get(disciplines.get(i))[1], i) for i in disciplines.keys()]) + '<!--\n    -->| #default         = ' + parseError('Parameter 1 ungültig!') + ' }}<!--\n  -->| #default = ' + parseError('Parameter 2 ungültig!') + '<!--\n-->}}</includeonly></onlyinclude>\n\n{{Dokumentation}}'
