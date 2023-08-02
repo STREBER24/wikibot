@@ -73,6 +73,12 @@ def parseTime(data: list[dict[str, str]], discipline: str):
     ergebnis = ergebnis.replace('.',',').split(' ')
     return ergebnis[0] + '<!--' + ' '*(8-len(ergebnis[0])) + '-->{{#if: {{#invoke:TemplUtl|faculty|{{{3|}}}}} | ' + ('&#32;in '+ergebnis[1] if len(ergebnis)>1 else '') + '&nbsp;' + einheit + '}}'
 
+def parseEvents(data: list[dict[str, str]], discipline: str):
+    if data == []: return parseError('Keine Daten für diese Parameterkombination.')
+    events = [i.get('competition') for i in data]
+    events = (['', '', '', ''] + events)[-4:]
+    return '{{#switch: {{{3}}} |4=' + events[0] + ' |3='+ events[1] + ' |2='+ events[2] + ' |#default=' + events[3] + '}}'
+
 def parseError(text: str):
     return f'<span class="error">{text}</span> [[Kategorie:Wikipedia:Vorlagenfehler/Speedcubing]]'
 
@@ -123,6 +129,7 @@ if __name__ == '__main__':
     else:
         # editWiki(newData, parseDates, changedDisciplines, 'Vorlage:Speedcubing-Rekorddatum')
         # editWiki(newData, parseTime,  changedDisciplines, 'Vorlage:Speedcubing-Rekordzeit')
+        # editWiki(newData, parseEvents,  changedDisciplines, 'Vorlage:Speedcubing-Rekordevent')
         pass
-    editWiki(newData, parseTime, changedDisciplines, 'Benutzer:DerIchBot/Spielwiese/Vorlage:Speedcubing-Rekorddatum', forcedSummary='Tests ...')
-    print(generatePage(newData, parseTime))
+    # editWiki(newData, parseEvents, changedDisciplines, 'Benutzer:DerIchBot/Spielwiese/Vorlage:Speedcubing-Rekorddatum', forcedSummary='Tests ...')
+    print(generatePage(newData, parseEvents))
