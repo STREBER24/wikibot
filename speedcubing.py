@@ -2,6 +2,7 @@
 import wikitextparser as wtp
 import pywikibot
 import requests
+import typing
 import json
 import bs4
 import io
@@ -25,7 +26,7 @@ disciplines = {'2x2x2': '2x2x2 Cube',
                'Square1': 'Square-1', 
                'Clock': 'Clock'}
 
-def editWiki(data: dict[str, tuple[list[dict], list[dict]]], parser, pagename: str):
+def editWiki(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]], parser: typing.Callable[[list[dict[str, str]]], str], pagename: str):
     site = pywikibot.Site('de', 'wikipedia')
     site.login()
     assert site.logged_in()
@@ -36,15 +37,15 @@ def editWiki(data: dict[str, tuple[list[dict], list[dict]]], parser, pagename: s
         if newText != page.text:
             print('Update page ...')
             page.text = newText
-            page.save(botflag=True, summary='Bot: Tests ...')
+            page.save(botflag=True, minor=False, summary='Bot: Tests ...')
         else:
             print('Page content did not change.')
     else:
         print('skipped')
     site.logout()
 
-def generatePage(data: dict[str, tuple[list[dict], list[dict]]], parser):
-    return '<onlyinclude><includeonly>\n  {{#switch: {{{2}}}\n    | Single = {{#switch: {{{1}}}' + ''.join(['\n      | '+i.ljust(16)+' = '+parser(data.get(disciplines.get(i))[0]) for i in disciplines.keys()]) + '\n      | #default         = ' + parseError('Parameter 1 ungültig!') + ' }}\n    | Average = {{#switch: {{{1}}}' + ''.join(['\n      | '+i.ljust(16)+' = '+parser(data.get(disciplines.get(i))[1]) for i in disciplines.keys()]) + '\n      | #default         = ' + parseError('Parameter 1 ungültig!') + ' }}\n    | #default = ' + parseError('Parameter 2 ungültig!') + '\n  }}\n</includeonly></onlyinclude>\n\n{{Dokumentation}}'
+def generatePage(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]], parser: typing.Callable[[list[dict[str, str]]], str]):
+    return '<onlyinclude><includeonly><!--\n-->{{#switch: {{{2}}}<!--\n  -->| Single = {{#switch: {{{1}}}' + ''.join(['<!--\n    -->| '+i.ljust(16)+' = '+parser(data.get(disciplines.get(i))[0]) for i in disciplines.keys()]) + '<!--\n    -->| #default         = ' + parseError('Parameter 1 ungültig!') + ' }}<!--\n  -->| Average = {{#switch: {{{1}}}' + ''.join(['<!--\n    -->| '+i.ljust(16)+' = '+parser(data.get(disciplines.get(i))[1]) for i in disciplines.keys()]) + '<!--\n    -->| #default         = ' + parseError('Parameter 1 ungültig!') + ' }}<!--\n  -->| #default = ' + parseError('Parameter 2 ungültig!') + '<!--\n-->}}</includeonly></onlyinclude>\n\n{{Dokumentation}}'
 
 def parseDates(data: list[dict[str, str]]):
     if data == []: return parseError('Keine Daten für diese Parameterkombination.')
@@ -53,6 +54,14 @@ def parseDates(data: list[dict[str, str]]):
     dates = [i.get('date') for i in data]
     dates = (['', '', '', ''] + [f'{i[4:6]}. {months.get(i[0:3])} {i[8:12]}' for i in dates])[-4:]
     return '{{#switch: {{{3}}} |4=' + dates[0] + ' |3='+ dates[1] + ' |2='+ dates[2] + ' |#default=' + dates[3] + '}}'
+
+def parseTime(data: list[dict[str, str]]):
+    if data == []: return parseError('Keine Daten für diese Parameterkombination.')
+    ergebnis = data[0].get('single') if data[0].get('single') != '' else data[0].get('average')
+    assert ergebnis != '' and ergebnis != None
+    einheit = 'Minuten' if ':' in ergebnis else ('Sekunden' if '.' in ergebnis else 'Züge')
+    ergebnis = ergebnis.replace('.',',').split(' ')
+    return ergebnis[0] + '<!--' + ' '*(8-len(ergebnis[0])) + '-->{{#ifeq: {{{3}}} |0|| ' + ('&#32;in '+ergebnis[1] if len(ergebnis)>1 else '') + '&nbsp;' + einheit + '}}'
 
 def parseError(text: str):
     return f'<span class="error">{text}</span> [[Kategorie:Wikipedia:Vorlagenfehler/Speedcubing]]'
@@ -70,7 +79,7 @@ def scrape():
     titles = body.find_all('h2')
     tables = body.find_all('div', {'class': 'table-responsive'})
     assert len(titles) == len(tables)
-    data: dict[str, tuple[list[dict], list[dict]]] = dict()
+    data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]] = dict()
     for title, table in zip(titles, tables):
         title: bs4.element.Tag
         table: bs4.element.Tag
@@ -97,3 +106,4 @@ if __name__ == '__main__':
     with io.open('test.json', 'w', encoding='utf8') as file:
         json.dump(data, file, indent=2, ensure_ascii=False)
     editWiki(data, parseDates, 'Benutzer:DerIchBot/Spielwiese/Vorlage:Speedcubing-Rekorddatum')
+    print(generatePage(data, parseTime))
