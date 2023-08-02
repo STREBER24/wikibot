@@ -27,7 +27,7 @@ disciplines = {'2x2x2': '2x2x2 Cube',
                'Clock': 'Clock'}
 
 def editWiki(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]], 
-             parser: typing.Callable[[list[dict[str, str]]], str], 
+             parser: typing.Callable[[list[dict[str, str]], str], str], 
              changedDisciplines: list[str], 
              pagename: str, 
              forcedSummary: str|None = None):
@@ -49,10 +49,10 @@ def editWiki(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]],
         print('skipped')
     site.logout()
 
-def generatePage(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]], parser: typing.Callable[[list[dict[str, str]]], str]):
-    return '<onlyinclude><includeonly><!--\n-->{{#switch: {{{2}}}<!--\n  -->| Single = {{#switch: {{{1}}}' + ''.join(['<!--\n    -->| '+i.ljust(16)+' = '+parser(data.get(disciplines.get(i))[0]) for i in disciplines.keys()]) + '<!--\n    -->| #default         = ' + parseError('Parameter 1 ungültig!') + ' }}<!--\n  -->| Average = {{#switch: {{{1}}}' + ''.join(['<!--\n    -->| '+i.ljust(16)+' = '+parser(data.get(disciplines.get(i))[1]) for i in disciplines.keys()]) + '<!--\n    -->| #default         = ' + parseError('Parameter 1 ungültig!') + ' }}<!--\n  -->| #default = ' + parseError('Parameter 2 ungültig!') + '<!--\n-->}}</includeonly></onlyinclude>\n\n{{Dokumentation}}'
+def generatePage(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]], parser: typing.Callable[[list[dict[str, str]], str], str]):
+    return '<onlyinclude><includeonly><!--\n-->{{#switch: {{{2}}}<!--\n  -->| Single = {{#switch: {{{1}}}' + ''.join(['<!--\n    -->| '+i.ljust(16)+' = '+parser(data.get(disciplines.get(i))[0], i) for i in disciplines.keys()]) + '<!--\n    -->| #default         = ' + parseError('Parameter 1 ungültig!') + ' }}<!--\n  -->| Average = {{#switch: {{{1}}}' + ''.join(['<!--\n    -->| '+i.ljust(16)+' = '+parser(data.get(disciplines.get(i))[1], i) for i in disciplines.keys()]) + '<!--\n    -->| #default         = ' + parseError('Parameter 1 ungültig!') + ' }}<!--\n  -->| #default = ' + parseError('Parameter 2 ungültig!') + '<!--\n-->}}</includeonly></onlyinclude>\n\n{{Dokumentation}}'
 
-def parseDates(data: list[dict[str, str]]):
+def parseDates(data: list[dict[str, str]], discipline: str):
     if data == []: return parseError('Keine Daten für diese Parameterkombination.')
     months = {'Jan': 'Januar', 'Feb': 'Februar', 'Mar': 'März', 'Apr': 'April', 'May': 'Mai', 'Jun': 'Juni',
               'Jul': 'Juli', 'Aug': 'August', 'Sep': 'September', 'Oct': 'Oktober', 'Nov': 'November', 'Dec': 'Dezember'}
@@ -60,11 +60,11 @@ def parseDates(data: list[dict[str, str]]):
     dates = (['', '', '', ''] + [f'{i[4:6]}. {months.get(i[0:3])} {i[8:12]}' for i in dates])[-4:]
     return '{{#switch: {{{3}}} |4=' + dates[0] + ' |3='+ dates[1] + ' |2='+ dates[2] + ' |#default=' + dates[3] + '}}'
 
-def parseTime(data: list[dict[str, str]]):
+def parseTime(data: list[dict[str, str]], discipline: str):
     if data == []: return parseError('Keine Daten für diese Parameterkombination.')
     ergebnis = data[0].get('single') if data[0].get('single') != '' else data[0].get('average')
     assert ergebnis != '' and ergebnis != None
-    einheit = 'Minuten' if ':' in ergebnis else ('Sekunden' if '.' in ergebnis else 'Züge')
+    einheit = 'Züge' if 'moves' in discipline else ('Minuten' if ':' in ergebnis else 'Sekunden')
     ergebnis = ergebnis.replace('.',',').split(' ')
     return ergebnis[0] + '<!--' + ' '*(8-len(ergebnis[0])) + '-->{{#ifeq: {{{3}}} |0|| ' + ('&#32;in '+ergebnis[1] if len(ergebnis)>1 else '') + '&nbsp;' + einheit + '}}'
 
@@ -118,6 +118,6 @@ if __name__ == '__main__':
     else:
         # editWiki(newData, parseDates, changedDisciplines, 'Vorlage:Speedcubing-Rekorddatum')
         # editWiki(newData, parseTime,  changedDisciplines, 'Vorlage:Speedcubing-Rekordzeit')
-        editWiki(newData, parseDates, changedDisciplines, 'Benutzer:DerIchBot/Spielwiese/Vorlage:Speedcubing-Rekorddatum')
-        # print(generatePage(newData, parseTime))
         pass
+    editWiki(newData, parseTime, changedDisciplines, 'Benutzer:DerIchBot/Spielwiese/Vorlage:Speedcubing-Rekorddatum', forcedSummary='Tests ...')
+    print(generatePage(newData, parseTime))
