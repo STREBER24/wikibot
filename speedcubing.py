@@ -26,7 +26,11 @@ disciplines = {'2x2x2': '2x2x2 Cube',
                'Square1': 'Square-1', 
                'Clock': 'Clock'}
 
-def editWiki(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]], parser: typing.Callable[[list[dict[str, str]]], str], pagename: str):
+def editWiki(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]], 
+             parser: typing.Callable[[list[dict[str, str]]], str], 
+             changedDisciplines: list[str], 
+             pagename: str, 
+             forcedSummary: str|None = None):
     site = pywikibot.Site('de', 'wikipedia')
     site.login()
     assert site.logged_in()
@@ -37,7 +41,8 @@ def editWiki(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]],
         if newText != page.text:
             print('Update page ...')
             page.text = newText
-            page.save(botflag=True, minor=False, summary='Bot: Tests ...')
+            summary = f'Bot: Aktualisiere Rekord{"e" if len(changedDisciplines)>1 else ""} für {" und ".join(changedDisciplines)}.'
+            page.save(botflag=True, minor=False, summary=(summary if forcedSummary==None else f'Bot: {forcedSummary}'))
         else:
             print('Page content did not change.')
     else:
@@ -102,8 +107,17 @@ def scrape():
     return data
         
 if __name__ == '__main__':
-    data = scrape()
-    with io.open('test.json', 'w', encoding='utf8') as file:
-        json.dump(data, file, indent=2, ensure_ascii=False)
-    editWiki(data, parseDates, 'Benutzer:DerIchBot/Spielwiese/Vorlage:Speedcubing-Rekorddatum')
-    print(generatePage(data, parseTime))
+    newData = scrape()
+    with io.open('speedcubing-data.json', 'r', encoding='utf8') as file:
+        oldData: dict[str, tuple] = json.loads(file.read())
+    with io.open('speedcubing-data.json', 'w', encoding='utf8') as file:
+        json.dump(newData, file, indent=2, ensure_ascii=False)
+    changedDisciplines = [i for i in disciplines.keys() if json.dumps(oldData.get(disciplines.get(i)), ensure_ascii=False) != json.dumps(newData.get(disciplines.get(i)), ensure_ascii=False)]
+    if changedDisciplines == []:
+        print('Keine Änderung an den Rohdaten.')
+    else:
+        # editWiki(newData, parseDates, changedDisciplines, 'Vorlage:Speedcubing-Rekorddatum')
+        # editWiki(newData, parseTime,  changedDisciplines, 'Vorlage:Speedcubing-Rekordzeit')
+        editWiki(newData, parseDates, changedDisciplines, 'Benutzer:DerIchBot/Spielwiese/Vorlage:Speedcubing-Rekorddatum')
+        # print(generatePage(newData, parseTime))
+        pass
