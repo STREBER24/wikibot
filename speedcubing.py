@@ -26,6 +26,11 @@ disciplines = {'2x2x2': '2x2x2 Cube',
                'Square1': 'Square-1', 
                'Clock': 'Clock'}
 
+differentLinks = {'Yiheng Wang (王艺衡)': 'Yiheng Wang',
+                  'Guanbo Wang (王冠博)': 'Guanbo Wang',
+                  'Lim Hung (林弘)': 'Lim Hung',
+                  'Yuxuan Wang (王宇轩)': 'Yuxuan Wang'}
+
 def editWiki(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]], 
              parser: typing.Callable[[list[dict[str, str]], str], str], 
              changedDisciplines: list[str], 
@@ -66,7 +71,7 @@ def parseTime(data: list[dict[str, str]], discipline: str):
     assert ergebnis != '' and ergebnis != None
     einheit = 'Züge' if 'moves' in discipline else ('Minuten' if ':' in ergebnis else 'Sekunden')
     ergebnis = ergebnis.replace('.',',').split(' ')
-    return ergebnis[0] + '<!--' + ' '*(8-len(ergebnis[0])) + '-->{{#ifeq: {{{3}}} |0|| ' + ('&#32;in '+ergebnis[1] if len(ergebnis)>1 else '') + '&nbsp;' + einheit + '}}'
+    return ergebnis[0] + '<!--' + ' '*(8-len(ergebnis[0])) + '-->{{#if: {{#invoke:TemplUtl|faculty|{{{3|}}}}} | ' + ('&#32;in '+ergebnis[1] if len(ergebnis)>1 else '') + '&nbsp;' + einheit + '}}'
 
 def parseError(text: str):
     return f'<span class="error">{text}</span> [[Kategorie:Wikipedia:Vorlagenfehler/Speedcubing]]'
