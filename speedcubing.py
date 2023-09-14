@@ -57,13 +57,25 @@ def editWiki(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]],
 def generatePage(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]], parser: typing.Callable[[list[dict[str, str]], str], str]):
     return '<onlyinclude><includeonly><!--\n-->{{#switch: {{{2}}}<!--\n  -->| Single = {{#switch: {{{1}}}' + ''.join(['<!--\n    -->| '+i.ljust(16)+' = '+parser(data.get(disciplines.get(i))[0], i) for i in disciplines.keys()]) + '<!--\n    -->| #default         = ' + parseError('Parameter 1 ungültig!') + ' }}<!--\n  -->| Average = {{#switch: {{{1}}}' + ''.join(['<!--\n    -->| '+i.ljust(16)+' = '+parser(data.get(disciplines.get(i))[1], i) for i in disciplines.keys()]) + '<!--\n    -->| #default         = ' + parseError('Parameter 1 ungültig!') + ' }}<!--\n  -->| #default = ' + parseError('Parameter 2 ungültig!') + '<!--\n-->}}</includeonly></onlyinclude>\n\n{{Dokumentation}}'
 
+def parseSwitch(data: list[str], key: int):
+    data = (['', '', '', ''] + data)[-4:]
+    return '{{#switch: {{{' + str(key) + '}}} |4=' + data[0] + ' |3='+ data[1] + ' |2='+ data[2] + ' |#default=' + data[3] + '}}'
+
 def parseDates(data: list[dict[str, str]], discipline: str):
     if data == []: return parseError('Keine Daten für diese Parameterkombination.')
     months = {'Jan': 'Januar', 'Feb': 'Februar', 'Mar': 'März', 'Apr': 'April', 'May': 'Mai', 'Jun': 'Juni',
               'Jul': 'Juli', 'Aug': 'August', 'Sep': 'September', 'Oct': 'Oktober', 'Nov': 'November', 'Dec': 'Dezember'}
     dates = [i.get('date') for i in data]
-    dates = (['', '', '', ''] + [f'{i[4:6]}. {months.get(i[0:3])} {i[8:12]}' for i in dates])[-4:]
-    return '{{#switch: {{{3}}} |4=' + dates[0] + ' |3='+ dates[1] + ' |2='+ dates[2] + ' |#default=' + dates[3] + '}}'
+    dates = [f'{i[4:6]}. {months.get(i[0:3])} {i[8:12]}' for i in dates]
+    return parseSwitch(dates, 3)
+
+def parseNames(data: list[dict[str, str]], discipline: str):
+    if data == []: return parseError('Keine Daten für diese Parameterkombination.')
+    months = {'Jan': 'Januar', 'Feb': 'Februar', 'Mar': 'März', 'Apr': 'April', 'May': 'Mai', 'Jun': 'Juni',
+              'Jul': 'Juli', 'Aug': 'August', 'Sep': 'September', 'Oct': 'Oktober', 'Nov': 'November', 'Dec': 'Dezember'}
+    names = [i.get('name') for i in data]
+    links = ['[[' + (i if differentLinks.get(i)==None else differentLinks.get(i)+'|'+i) + ']]' for i in names]
+    return '{{#if: {{#invoke:TemplUtl|faculty|{{{3|}}}}} |<!--\n      -->' + parseSwitch(links, 4) + '|<!--\n      -->' + parseSwitch(names, 4) + '}}'
 
 def parseTime(data: list[dict[str, str]], discipline: str):
     if data == []: return parseError('Keine Daten für diese Parameterkombination.')
@@ -76,8 +88,7 @@ def parseTime(data: list[dict[str, str]], discipline: str):
 def parseEvents(data: list[dict[str, str]], discipline: str):
     if data == []: return parseError('Keine Daten für diese Parameterkombination.')
     events = [i.get('competition') for i in data]
-    events = (['', '', '', ''] + events)[-4:]
-    return '{{#switch: {{{3}}} |4=' + events[0] + ' |3='+ events[1] + ' |2='+ events[2] + ' |#default=' + events[3] + '}}'
+    return parseSwitch(events, 3)
 
 def parseError(text: str):
     return f'<span class="error">{text}</span> [[Kategorie:Wikipedia:Vorlagenfehler/Speedcubing]]'
@@ -127,9 +138,10 @@ if __name__ == '__main__':
     if changedDisciplines == []:
         print('Keine Änderung an den Rohdaten.')
     else:
-        # editWiki(newData, parseDates, changedDisciplines, 'Vorlage:Speedcubing-Rekorddatum')
-        # editWiki(newData, parseTime,  changedDisciplines, 'Vorlage:Speedcubing-Rekordzeit')
-        # editWiki(newData, parseEvents,  changedDisciplines, 'Vorlage:Speedcubing-Rekordevent')
-        pass
+        editWiki(newData, parseDates,  changedDisciplines, 'Vorlage:Speedcubing-Rekorddatum')
+        editWiki(newData, parseTime,   changedDisciplines, 'Vorlage:Speedcubing-Rekordzeit')
+        editWiki(newData, parseEvents, changedDisciplines, 'Vorlage:Speedcubing-Rekordevent')
+        editWiki(newData, parseNames,  changedDisciplines, 'Vorlage:Speedcubing-Rekordhalter')
     # editWiki(newData, parseEvents, changedDisciplines, 'Benutzer:DerIchBot/Spielwiese/Vorlage:Speedcubing-Rekorddatum', forcedSummary='Tests ...')
-    print(generatePage(newData, parseEvents))
+    # print(generatePage(newData, parseNames))
+    print('Erfolgreich ausgeführt.')

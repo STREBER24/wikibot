@@ -1,5 +1,6 @@
 apicache-py3
 throttle.ctrl
 *.lwp
+*.tmp
 *.json
 user-password.py
