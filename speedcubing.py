@@ -1,11 +1,10 @@
-
-import wikitextparser as wtp
 import pywikibot
 import requests
 import typing
 import json
 import bs4
 import io
+import re
 
 disciplines = {'2x2x2': '2x2x2 Cube', 
                '3x3x3': '3x3x3 Cube', 
@@ -26,10 +25,12 @@ disciplines = {'2x2x2': '2x2x2 Cube',
                'Square1': 'Square-1', 
                'Clock': 'Clock'}
 
-differentLinks = {'Yiheng Wang (王艺衡)': 'Yiheng Wang',
-                  'Guanbo Wang (王冠博)': 'Guanbo Wang',
-                  'Lim Hung (林弘)': 'Lim Hung',
-                  'Yuxuan Wang (王宇轩)': 'Yuxuan Wang'}
+def differentLinks(name: str):
+    links = dict()
+    if links.get(name) != None:
+        return links.get(name)
+    if re.search(' \(.+\)$', name):
+        return re.sub(' \(.+\)$', '', name)
 
 def editWiki(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]], 
              parser: typing.Callable[[list[dict[str, str]], str], str], 
@@ -38,8 +39,7 @@ def editWiki(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]],
              forcedSummary: str|None = None):
     site = pywikibot.Site('de', 'wikipedia')
     page = pywikibot.Page(site, pagename)
-    lastEdit = [cell.plain_text().strip('| \n') for cell in wtp.parse(page.getVersionHistoryTable(total=1)).tables[0].cells(row=1)]
-    if lastEdit[2] == 'DerIchBot' or input(f'{lastEdit[2]} hat die Seite {pagename} zuletzt geändert. Trotzdem fortfahren? ').strip().lower() in ['y', 'j', 'ja', 'yes']:
+    if page.latest_revision["user"] == 'DerIchBot' or input(f'{page.latest_revision["user"]} hat die Seite {pagename} zuletzt geändert. Trotzdem fortfahren? ').strip().lower() in ['y', 'j', 'ja', 'yes']:
         newText = generatePage(data, parser)
         if newText != page.text:
             print('Update page ...')
@@ -74,7 +74,7 @@ def parseNames(data: list[dict[str, str]], discipline: str):
     months = {'Jan': 'Januar', 'Feb': 'Februar', 'Mar': 'März', 'Apr': 'April', 'May': 'Mai', 'Jun': 'Juni',
               'Jul': 'Juli', 'Aug': 'August', 'Sep': 'September', 'Oct': 'Oktober', 'Nov': 'November', 'Dec': 'Dezember'}
     names = [i.get('name') for i in data]
-    links = ['[[' + (i if differentLinks.get(i)==None else differentLinks.get(i)+'|'+i) + ']]' for i in names]
+    links = ['[[' + (i if differentLinks(i)==None else differentLinks(i)+'|'+i) + ']]' for i in names]
     return '{{#if: {{#invoke:TemplUtl|faculty|{{{3|}}}}} |<!--\n      -->' + parseSwitch(links, 4) + '|<!--\n      -->' + parseSwitch(names, 4) + '}}'
 
 def parseTime(data: list[dict[str, str]], discipline: str):
@@ -127,8 +127,8 @@ def scrape():
                 average.append(res)
         data[title.text.strip()] = (single, average)
     return data
-        
-if __name__ == '__main__':
+    
+def run():
     newData = scrape()
     with io.open('speedcubing-data.json', 'r', encoding='utf8') as file:
         oldData: dict[str, tuple] = json.loads(file.read())
@@ -142,6 +142,9 @@ if __name__ == '__main__':
         editWiki(newData, parseTime,   changedDisciplines, 'Vorlage:Speedcubing-Rekordzeit')
         editWiki(newData, parseEvents, changedDisciplines, 'Vorlage:Speedcubing-Rekordevent')
         editWiki(newData, parseNames,  changedDisciplines, 'Vorlage:Speedcubing-Rekordhalter')
+    print('Erfolgreich ausgeführt.')
+    
+if __name__ == '__main__':
     # editWiki(newData, parseEvents, changedDisciplines, 'Benutzer:DerIchBot/Spielwiese/Vorlage:Speedcubing-Rekorddatum', forcedSummary='Tests ...')
     # print(generatePage(newData, parseNames))
-    print('Erfolgreich ausgeführt.')
+    run()
