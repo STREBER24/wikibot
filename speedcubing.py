@@ -135,7 +135,8 @@ def run():
     with io.open('speedcubing-data.json', 'w', encoding='utf8') as file:
         json.dump(newData, file, indent=2, ensure_ascii=False)
     changedDisciplines = [i for i in disciplines.keys() if json.dumps(oldData.get(disciplines.get(i)), ensure_ascii=False) != json.dumps(newData.get(disciplines.get(i)), ensure_ascii=False)]
-    if changedDisciplines == []:
+    changes = changedDisciplines != []
+    if not changes:
         print('Keine Änderung an den Rohdaten.')
     else:
         editWiki(newData, parseDates,  changedDisciplines, 'Vorlage:Speedcubing-Rekorddatum')
@@ -143,6 +144,7 @@ def run():
         editWiki(newData, parseEvents, changedDisciplines, 'Vorlage:Speedcubing-Rekordevent')
         editWiki(newData, parseNames,  changedDisciplines, 'Vorlage:Speedcubing-Rekordhalter')
     print('Erfolgreich ausgeführt.')
+    return changes
     
 if __name__ == '__main__':
     # editWiki(newData, parseEvents, changedDisciplines, 'Benutzer:DerIchBot/Spielwiese/Vorlage:Speedcubing-Rekorddatum', forcedSummary='Tests ...')

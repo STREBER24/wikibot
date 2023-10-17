@@ -1,4 +1,5 @@
 import speedcubing
 
 if __name__ == '__main__':
-    speedcubing.run()
+    changes = speedcubing.run()
+    if changes: input('Press enter to exit ...')
