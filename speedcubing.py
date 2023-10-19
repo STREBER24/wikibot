@@ -99,6 +99,7 @@ def stripTag(tag: bs4.element.Tag | None):
     return tag.text.strip()
 
 def scrape():
+    print('Lade worldcubeassociation.org ...')
     result = requests.get('https://www.worldcubeassociation.org/results/records?show=history')
     assert result.ok
     soup = bs4.BeautifulSoup(result.text, 'html.parser')
