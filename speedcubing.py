@@ -1,6 +1,7 @@
 import pywikibot
 import requests
 import typing
+import utils
 import json
 import bs4
 import io
@@ -63,10 +64,9 @@ def parseSwitch(data: list[str], key: int):
 
 def parseDates(data: list[dict[str, str]], discipline: str):
     if data == []: return parseError('Keine Daten für diese Parameterkombination.')
-    months = {'Jan': 'Januar', 'Feb': 'Februar', 'Mar': 'März', 'Apr': 'April', 'May': 'Mai', 'Jun': 'Juni',
-              'Jul': 'Juli', 'Aug': 'August', 'Sep': 'September', 'Oct': 'Oktober', 'Nov': 'November', 'Dec': 'Dezember'}
+    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     dates = [i.get('date') for i in data]
-    dates = [f'{i[4:6]}. {months.get(i[0:3])} {i[8:12]}' for i in dates]
+    dates = [utils.formatDate(i[4:6], months.index(i[0:3]+1), i[8:12]) for i in dates]
     return parseSwitch(dates, 3)
 
 def parseNames(data: list[dict[str, str]], discipline: str):
