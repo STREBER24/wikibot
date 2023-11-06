@@ -66,7 +66,7 @@ def parseDates(data: list[dict[str, str]], discipline: str):
     if data == []: return parseError('Keine Daten für diese Parameterkombination.')
     months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     dates = [i.get('date') for i in data]
-    dates = [utils.formatDate(i[4:6], months.index(i[0:3]+1), i[8:12]) for i in dates]
+    dates = [utils.formatDate(i[4:6], months.index(i[0:3])+1, i[8:12]) for i in dates]
     return parseSwitch(dates, 3)
 
 def parseNames(data: list[dict[str, str]], discipline: str):
