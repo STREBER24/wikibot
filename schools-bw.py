@@ -30,7 +30,15 @@ def getAllSchoolDischs(search: str|None='', multiplePages: bool=False) -> set[st
             ok = False
     return data
 
-def run():
+def getSchoolByDisch(disch: str):
+    url = 'https://lobw.kultus-bw.de/didsuche/DienststellenSucheWebService.asmx/GetDienststelle'
+    res = requests.post(url, json={'disch': disch})
+    data: dict = json.loads(res.json().get('d'))
+    data['NAME'] = utils.getText(data.get('NAME'))
+    data['UEBERGEORDNET'] = utils.getText(data.get('UEBERGEORDNET'))
+    return data
+
+def addAllDischs():
     site = pywikibot.Site('de', 'wikipedia')
     site.login()
     generator = utils.getTemplateUsage(site, 'Infobox Schule')
@@ -55,8 +63,55 @@ def run():
             template.set_arg('Schulnummer', disch, preserve_spacing=True)
             page.text = parsed
             page.save(botflag=True, minor=False, summary=(f'Bot: Ergänze Schulnummer (DISCH). Siehe km-bw.de/Schuladressdatenbank'))
-            time.sleep(5)
-            input('press enter to continue ...')
+
+def addWikidataNumberClaim(repo: any, item: pywikibot.ItemPage, property: str, number: int, url: str, pointInTime: pywikibot.WbTime|None=None):
+    if property in item.get()['claims']:
+        print(f'skip update of {item.title()} because {property} is already set.')
+        return
+    now = time.localtime()
+    today = pywikibot.WbTime(year=now.tm_year, month=now.tm_mon, day=now.tm_mday)
+    # Anzahl der Schüler / Studenten / Lehrer
+    claim = pywikibot.Claim(repo, property)
+    claim.setTarget(pywikibot.WbQuantity(number, site=repo))
+    item.addClaim(claim, summary=f'Bot: Adding claim {property}.')
+    # Zeitpunkt / Stand
+    qualifier = pywikibot.Claim(repo, 'P585')
+    qualifier.setTarget(today if pointInTime==None else pointInTime)
+    claim.addQualifier(qualifier, summary=f'Bot: Adding a qualifier to {property}.')
+    # URL der Fundstelle und abgerufen am
+    ref = pywikibot.Claim(repo, 'P854')
+    ref.setTarget(url)
+    retrieved = pywikibot.Claim(repo, 'P813')
+    retrieved.setTarget(today) 
+    claim.addSources([ref, retrieved], summary=f'Bot: Adding sources to {property}.')
+
+
+
+def updateWikidata():
+    wikipedia = pywikibot.Site('de', 'wikipedia')
+    wikidata = pywikibot.Site('wikidata', 'wikidata')
+    repo = wikidata.data_repository()
+    wikidata.login()
+    generator = utils.getTemplateUsage(wikipedia, 'Infobox Schule')
+    for page in generator:
+        parsed = wtp.parse(page.get())
+        ids = set()
+        for template in parsed.templates:
+            if template.name.strip() != 'Infobox Schule': continue
+            if utils.findTemplateArg(template, 'Region-ISO') != 'DE-BW': continue
+            id = utils.findTemplateArg(template, 'Schulnummer')
+            if id != None: ids.add(id)
+        if len(ids) != 1: continue
+        disch = ids.pop()
+        if str(disch).strip() == '': continue
+        print(f'found disch {disch} of {page.title()}')
+        school = getSchoolByDisch(disch)
+        students = school.get('SCHUELER')
+        teachers = school.get('LEHRER')
+        item = pywikibot.ItemPage.fromPage(page)
+        if students != None: addWikidataNumberClaim(repo, item, 'P2196',  students, 'https://km-bw.de/Schuladressdatenbank', pywikibot.WbTime(2023, 1))
+        if teachers != None: addWikidataNumberClaim(repo, item, 'P10610', teachers, 'https://km-bw.de/Schuladressdatenbank', pywikibot.WbTime(2023, 1))
 
 if __name__ == '__main__':
-    run()
+    addAllDischs()
+    updateWikidata()
