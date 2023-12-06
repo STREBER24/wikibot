@@ -85,8 +85,6 @@ def addWikidataNumberClaim(repo: any, item: pywikibot.ItemPage, property: str, n
     retrieved.setTarget(today) 
     claim.addSources([ref, retrieved], summary=f'Bot: Adding sources to {property}.')
 
-
-
 def updateWikidata():
     wikipedia = pywikibot.Site('de', 'wikipedia')
     wikidata = pywikibot.Site('wikidata', 'wikidata')
@@ -103,15 +101,18 @@ def updateWikidata():
             if id != None: ids.add(id)
         if len(ids) != 1: continue
         disch = ids.pop()
-        if str(disch).strip() == '': continue
         print(f'found disch {disch} of {page.title()}')
-        school = getSchoolByDisch(disch)
-        students = school.get('SCHUELER')
-        teachers = school.get('LEHRER')
-        item = pywikibot.ItemPage.fromPage(page)
-        if students != None: addWikidataNumberClaim(repo, item, 'P2196',  students, 'https://km-bw.de/Schuladressdatenbank', pywikibot.WbTime(2023, 1))
-        if teachers != None: addWikidataNumberClaim(repo, item, 'P10610', teachers, 'https://km-bw.de/Schuladressdatenbank', pywikibot.WbTime(2023, 1))
+        try:
+            school = getSchoolByDisch(disch)
+        except Exception as e:
+            print(f'[ERROR] when fetching school: {e}')
+        else:
+            students = school.get('SCHUELER')
+            teachers = school.get('LEHRER')
+            item = pywikibot.ItemPage.fromPage(page)
+            if students != None: addWikidataNumberClaim(repo, item, 'P2196',  students, 'https://km-bw.de/Schuladressdatenbank', pywikibot.WbTime(2023, 1))
+            if teachers != None: addWikidataNumberClaim(repo, item, 'P10610', teachers, 'https://km-bw.de/Schuladressdatenbank', pywikibot.WbTime(2023, 1))
 
 if __name__ == '__main__':
-    addAllDischs()
+    # addAllDischs()
     updateWikidata()

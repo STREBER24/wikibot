@@ -25,4 +25,5 @@ def getTemplateUsage(site: pywikibot.BaseSite, tmpl_name: str):
 def findTemplateArg(template: wtp.Template, argName: str):
     argument = template.get_arg(argName)
     if argument == None: return None
-    return wtp.parse(argument.value).plain_text().strip()
+    stripped = wtp.parse(argument.value).plain_text().strip()
+    return stripped if stripped != '' else None
