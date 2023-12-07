@@ -64,26 +64,20 @@ def addAllDischs():
             page.text = parsed
             page.save(botflag=True, minor=False, summary=(f'Bot: Ergänze Schulnummer (DISCH). Siehe km-bw.de/Schuladressdatenbank'))
 
-def addWikidataNumberClaim(repo: any, item: pywikibot.ItemPage, property: str, number: int, url: str, pointInTime: pywikibot.WbTime|None=None):
+def addWikidataNumberClaim(repo: any, item: pywikibot.ItemPage, property: str, number: int, url: str, pointInTime: pywikibot.WbTime):
     if property in item.get()['claims']:
         print(f'skip update of {item.title()} because {property} is already set.')
         return
-    now = time.localtime()
-    today = pywikibot.WbTime(year=now.tm_year, month=now.tm_mon, day=now.tm_mday)
     # Anzahl der Schüler / Studenten / Lehrer
     claim = pywikibot.Claim(repo, property)
     claim.setTarget(pywikibot.WbQuantity(number, site=repo))
     item.addClaim(claim, summary=f'Bot: Adding claim {property}.')
     # Zeitpunkt / Stand
     qualifier = pywikibot.Claim(repo, 'P585')
-    qualifier.setTarget(today if pointInTime==None else pointInTime)
+    qualifier.setTarget(pointInTime)
     claim.addQualifier(qualifier, summary=f'Bot: Adding a qualifier to {property}.')
     # URL der Fundstelle und abgerufen am
-    ref = pywikibot.Claim(repo, 'P854')
-    ref.setTarget(url)
-    retrieved = pywikibot.Claim(repo, 'P813')
-    retrieved.setTarget(today) 
-    claim.addSources([ref, retrieved], summary=f'Bot: Adding sources to {property}.')
+    utils.addWikidataSource(repo, claim, url)
 
 def updateWikidata():
     wikipedia = pywikibot.Site('de', 'wikipedia')

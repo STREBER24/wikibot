@@ -1,7 +1,10 @@
 from pywikibot import pagegenerators as pg
 import wikitextparser as wtp
 import pywikibot
+import time
+import json
 import bs4
+import io
 
 def getText(tag: bs4.Tag | str | None) -> str:
     if tag == None: return ''
@@ -27,3 +30,25 @@ def findTemplateArg(template: wtp.Template, argName: str):
     if argument == None: return None
     stripped = wtp.parse(argument.value).plain_text().strip()
     return stripped if stripped != '' else None
+
+def checkLastUpdate(key: str, minDelayDays: int):
+    try:
+        with io.open('last-updates.json', encoding='utf8') as file:
+            data: dict = json.load(file)
+    except:
+        data = dict()
+    if data.get(key) != None and data.get(key) > time.time() - (minDelayDays*60*60*24):
+        return False
+    data[key] = int(time.time())
+    with io.open('last-updates.json', 'w', encoding='utf8') as file:
+            json.dump(data, file)
+    return True
+
+def addWikidataSource(repo: any, claim: pywikibot.Claim,  url: str):
+    now = time.localtime()
+    today = pywikibot.WbTime(year=now.tm_year, month=now.tm_mon, day=now.tm_mday)
+    ref = pywikibot.Claim(repo, 'P854')
+    ref.setTarget(url)
+    retrieved = pywikibot.Claim(repo, 'P813')
+    retrieved.setTarget(today) 
+    claim.addSources([ref, retrieved], summary=f'Bot: Adding references.')
