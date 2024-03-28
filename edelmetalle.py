@@ -38,8 +38,9 @@ def update(template: str, apiNames: tuple[str, str], displayNames: tuple[str, st
     return True
     
 def run():
-    update('Goldpreis', ('silver', 'gold_pm'), ('Silber', 'Gold'), 'AG')
-    update('Platinpreis', ('palladium_pm', 'platinum_pm'), ('Palladium ', 'Platin'), 'PD')
+    res1 = update('Goldpreis', ('silver', 'gold_pm'), ('Silber', 'Gold'), 'AG')
+    res2 = update('Platinpreis', ('palladium_pm', 'platinum_pm'), ('Palladium ', 'Platin'), 'PD')
+    return res1 or res2
 
 if __name__ == '__main__':
     run()
