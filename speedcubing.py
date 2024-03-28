@@ -30,8 +30,8 @@ def differentLinks(name: str):
     links = dict()
     if links.get(name) != None:
         return links.get(name)
-    if re.search(' \(.+\)$', name):
-        return re.sub(' \(.+\)$', '', name)
+    if re.search(' \\(.+\\)$', name):
+        return re.sub(' \\(.+\\)$', '', name)
 
 def editWiki(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]], 
              parser: typing.Callable[[list[dict[str, str]], str], str], 
