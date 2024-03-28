@@ -1,5 +1,6 @@
 import speedcubing
 import edelmetalle
+import traceback
 
 if __name__ == '__main__':
     changes = []
@@ -13,6 +14,7 @@ if __name__ == '__main__':
     
         if True in changes: input('\nPress enter to exit ...')
     
-    except Exception as e:
-        print(f'[FAILED] {e}')
+    except Exception:
+        print('[FAILED]')
+        traceback.print_exc()
         input('\nPress enter to exit ...')
