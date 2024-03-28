@@ -15,7 +15,7 @@ def formatDate(day: str|int, month: str|int, year: str|int):
     months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
     return f'{day}. {months[int(month)-1]} {year}'
 
-def getTemplateUsage(site: pywikibot.BaseSite, tmpl_name: str):
+def getTemplateUsage(site: pywikibot.Site, tmpl_name: str):
     print(f'[INFO] checking usage of template {tmpl_name} ...', end=' ')
     name = "{}:{}".format(site.namespace(10), tmpl_name)
     tmpl_page = pywikibot.Page(site, name)
@@ -25,10 +25,16 @@ def getTemplateUsage(site: pywikibot.BaseSite, tmpl_name: str):
     print('finished')
     return generator
 
+def templateToPlainText(template: wtp.Template):
+    if template.name == 'lang':
+        return findTemplateArg(template, '2')
+    return str(template)
+
 def findTemplateArg(template: wtp.Template, argName: str):
     argument = template.get_arg(argName)
     if argument == None: return None
-    stripped = wtp.parse(argument.value).plain_text().strip()
+    parsed = wtp.parse(argument.value)
+    stripped = parsed.plain_text(replace_templates=templateToPlainText).strip()
     return stripped if stripped != '' else None
 
 def checkLastUpdate(key: str, minDelayDays: int):
@@ -41,7 +47,7 @@ def checkLastUpdate(key: str, minDelayDays: int):
         return False
     data[key] = int(time.time())
     with io.open('last-updates.json', 'w', encoding='utf8') as file:
-            json.dump(data, file)
+        json.dump(data, file)
     return True
 
 def addWikidataSource(repo: any, claim: pywikibot.Claim,  url: str):
