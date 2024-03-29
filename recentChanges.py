@@ -11,7 +11,7 @@ import io
 def parseWeirdDateFormats(date: str|None):
     ''' Wandelt möglichts alle Datumsformate, die die Vorlage Internetquelle akzeptiert in Format YYYY-MM-DD um '''
     try:
-        if date == None: return None
+        if type(date) is not str: return None
         if re.match('^[0-9]{4}(-[0-9]{2}(-[0-9]{2})?)?$', date): 
             return date
         if re.match('^[0-9]{4}-[0-9]{2}-[0-9]$', date): 
@@ -67,10 +67,10 @@ def archiveParamsOk(template: wtp.Template) -> Literal[True] | str:
 
 class Problem(dict):
     def __init__(self, titel: str|None=None, problemtyp: str|None=None, snippet: str|None=None, foundDate: str|None=None, dictionary: dict = {}):
-        self.titel: str      = titel      if titel      != None else dictionary.get('titel')
-        self.problemtyp: str = problemtyp if problemtyp != None else dictionary.get('problemtyp')
-        self.snippet: str    = snippet    if snippet    != None else dictionary.get('snippet')
-        self.foundDate: str  = foundDate  if foundDate  != None else dictionary.get('foundDate')
+        if not isinstance(titel,      str): titel      = dictionary.get('titel');      assert isinstance(titel, str);      self.titel      = titel
+        if not isinstance(problemtyp, str): problemtyp = dictionary.get('problemtyp'); assert isinstance(problemtyp, str); self.problemtyp = problemtyp
+        if not isinstance(snippet,    str): snippet    = dictionary.get('snippet');    assert isinstance(snippet, str);    self.snippet    = snippet
+        if not isinstance(foundDate,  str): foundDate  = dictionary.get('foundDate');  assert isinstance(foundDate, str);  self.foundDate  = foundDate
         self.revision: int|None = dictionary.get('revision')
     def __str__(self):
         return self.titel + ': ' + self.problemtyp + ' ' + self.snippet

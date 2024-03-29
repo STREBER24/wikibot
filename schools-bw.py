@@ -1,9 +1,9 @@
+from typing import Any
 import wikitextparser as wtp
 import pywikibot
 import requests
 import random
 import utils
-import time
 import json
 
 def getAllSchoolDischs(search: str|None='', multiplePages: bool=False) -> set[str]:
@@ -23,7 +23,7 @@ def getAllSchoolDischs(search: str|None='', multiplePages: bool=False) -> set[st
                 res.json().get('d')).get('Rows')
             assert len(rows) > 0
             for school in rows:
-                data.add(school.get('DISCH').strip("'"))
+                data.add(school['DISCH'].strip("'"))
             pageNumber += 1
             if not multiplePages: ok = False
         except AssertionError:
@@ -64,7 +64,7 @@ def addAllDischs():
             page.text = parsed
             page.save(botflag=True, minor=False, summary=(f'Bot: Ergänze Schulnummer (DISCH). Siehe km-bw.de/Schuladressdatenbank'))
 
-def addWikidataNumberClaim(repo: any, item: pywikibot.ItemPage, property: str, number: int, url: str, pointInTime: pywikibot.WbTime):
+def addWikidataNumberClaim(repo: Any, item: pywikibot.ItemPage, property: str, number: int, url: str, pointInTime: pywikibot.WbTime):
     if property in item.get()['claims']:
         print(f'skip update of {item.title()} because {property} is already set.')
         return

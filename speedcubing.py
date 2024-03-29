@@ -27,7 +27,7 @@ disciplines = {'2x2x2': '2x2x2 Cube',
                'Clock': 'Clock'}
 
 def differentLinks(name: str):
-    links = dict()
+    links: dict[str, str] = dict()
     if links.get(name) != None:
         return links.get(name)
     if re.search(' \\(.+\\)$', name):
@@ -56,7 +56,7 @@ def editWiki(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]],
         print('skipped')
 
 def generatePage(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]], parser: typing.Callable[[list[dict[str, str]], str], str]):
-    return '<onlyinclude><includeonly><!--\n-->{{#switch: {{{2}}}<!--\n  -->| Single = {{#switch: {{{1}}}' + ''.join(['<!--\n    -->| '+i.ljust(16)+' = '+parser(data.get(disciplines.get(i))[0], i) for i in disciplines.keys()]) + '<!--\n    -->| #default         = ' + parseError('Parameter 1 ungültig!') + ' }}<!--\n  -->| Average = {{#switch: {{{1}}}' + ''.join(['<!--\n    -->| '+i.ljust(16)+' = '+parser(data.get(disciplines.get(i))[1], i) for i in disciplines.keys()]) + '<!--\n    -->| #default         = ' + parseError('Parameter 1 ungültig!') + ' }}<!--\n  -->| #default = ' + parseError('Parameter 2 ungültig!') + '<!--\n-->}}</includeonly></onlyinclude>\n\n{{Dokumentation}}'
+    return '<onlyinclude><includeonly><!--\n-->{{#switch: {{{2}}}<!--\n  -->| Single = {{#switch: {{{1}}}' + ''.join(['<!--\n    -->| '+i.ljust(16)+' = '+parser(data[disciplines[i]][0], i) for i in disciplines.keys()]) + '<!--\n    -->| #default         = ' + parseError('Parameter 1 ungültig!') + ' }}<!--\n  -->| Average = {{#switch: {{{1}}}' + ''.join(['<!--\n    -->| '+i.ljust(16)+' = '+parser(data[disciplines[i]][1], i) for i in disciplines.keys()]) + '<!--\n    -->| #default         = ' + parseError('Parameter 1 ungültig!') + ' }}<!--\n  -->| #default = ' + parseError('Parameter 2 ungültig!') + '<!--\n-->}}</includeonly></onlyinclude>\n\n{{Dokumentation}}'
 
 def parseSwitch(data: list[str], key: int):
     data = (['', '', '', ''] + data)[-4:]
@@ -65,7 +65,7 @@ def parseSwitch(data: list[str], key: int):
 def parseDates(data: list[dict[str, str]], discipline: str):
     if data == []: return parseError('Keine Daten für diese Parameterkombination.')
     months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-    dates = [i.get('date') for i in data]
+    dates = [i['date'] for i in data]
     dates = [utils.formatDate(i[4:6], months.index(i[0:3])+1, i[8:12]) for i in dates]
     return parseSwitch(dates, 3)
 
@@ -73,28 +73,28 @@ def parseNames(data: list[dict[str, str]], discipline: str):
     if data == []: return parseError('Keine Daten für diese Parameterkombination.')
     months = {'Jan': 'Januar', 'Feb': 'Februar', 'Mar': 'März', 'Apr': 'April', 'May': 'Mai', 'Jun': 'Juni',
               'Jul': 'Juli', 'Aug': 'August', 'Sep': 'September', 'Oct': 'Oktober', 'Nov': 'November', 'Dec': 'Dezember'}
-    names = [i.get('name') for i in data]
+    names = [i['name'] for i in data]
     links = ['[[' + (i if differentLinks(i)==None else differentLinks(i)+'|'+i) + ']]' for i in names]
     return '{{#if: {{#invoke:TemplUtl|faculty|{{{3|}}}}} |<!--\n      -->' + parseSwitch(links, 4) + '|<!--\n      -->' + parseSwitch(names, 4) + '}}'
 
 def parseTime(data: list[dict[str, str]], discipline: str):
     if data == []: return parseError('Keine Daten für diese Parameterkombination.')
     ergebnis = data[0].get('single') if data[0].get('single') != '' else data[0].get('average')
-    assert ergebnis != '' and ergebnis != None
+    assert isinstance(ergebnis, str) and ergebnis != ''
     einheit = 'Züge' if 'moves' in discipline else ('Minuten' if ':' in ergebnis else 'Sekunden')
-    ergebnis = ergebnis.replace('.',',').split(' ')
-    return ergebnis[0] + '<!--' + ' '*(8-len(ergebnis[0])) + '-->{{#if: {{#invoke:TemplUtl|faculty|{{{3|}}}}} | ' + ('&#32;in '+ergebnis[1] if len(ergebnis)>1 else '') + '&nbsp;' + einheit + '}}'
+    ergebnisList = ergebnis.replace('.',',').split(' ')
+    return ergebnis[0] + '<!--' + ' '*(8-len(ergebnisList[0])) + '-->{{#if: {{#invoke:TemplUtl|faculty|{{{3|}}}}} | ' + ('&#32;in '+ergebnisList[1] if len(ergebnisList)>1 else '') + '&nbsp;' + einheit + '}}'
 
 def parseEvents(data: list[dict[str, str]], discipline: str):
     if data == []: return parseError('Keine Daten für diese Parameterkombination.')
-    events = [i.get('competition') for i in data]
+    events = [i['competition'] for i in data]
     return parseSwitch(events, 3)
 
 def parseError(text: str):
     return f'<span class="error">{text}</span> [[Kategorie:Wikipedia:Vorlagenfehler/Speedcubing]]'
 
 def stripTag(tag: bs4.element.Tag | None):
-    if tag == None:
+    if not isinstance(tag, bs4.element.Tag):
         return ''
     return tag.text.strip()
 
@@ -104,15 +104,16 @@ def scrape():
     assert result.ok
     soup = bs4.BeautifulSoup(result.text, 'html.parser')
     body = soup.find(id='results-list')
+    assert isinstance(body, bs4.element.Tag)
     titles = body.find_all('h2')
     tables = body.find_all('div', {'class': 'table-responsive'})
     assert len(titles) == len(tables)
     data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]] = dict()
     for title, table in zip(titles, tables):
-        title: bs4.element.Tag
-        table: bs4.element.Tag
+        assert isinstance(title, bs4.element.Tag)
+        assert isinstance(table, bs4.element.Tag)
         tbody = table.find('tbody')
-        assert tbody != None
+        assert isinstance(tbody, bs4.element.Tag)
         results: list[dict[str, str]] = [{'date': stripTag(line.find('td', {'class': 'date'})),
                                           'single': stripTag(line.find('td', {'class': 'single'})),
                                           'average': stripTag(line.find('td', {'class': 'average'})),
@@ -135,7 +136,7 @@ def run():
         oldData: dict[str, tuple] = json.loads(file.read())
     with io.open('speedcubing-data.json', 'w', encoding='utf8') as file:
         json.dump(newData, file, indent=2, ensure_ascii=False)
-    changedDisciplines = [i for i in disciplines.keys() if json.dumps(oldData.get(disciplines.get(i)), ensure_ascii=False) != json.dumps(newData.get(disciplines.get(i)), ensure_ascii=False)]
+    changedDisciplines = [i for i in disciplines.keys() if json.dumps(oldData.get(disciplines[i]), ensure_ascii=False) != json.dumps(newData.get(disciplines.get(i)), ensure_ascii=False)]
     changes = changedDisciplines != []
     if not changes:
         print('Keine Änderung an den Rohdaten.')

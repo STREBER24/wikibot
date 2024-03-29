@@ -1,5 +1,6 @@
 from pywikibot import pagegenerators as pg
 import wikitextparser as wtp
+from typing import Any
 import pywikibot
 import time
 import json
@@ -7,9 +8,13 @@ import bs4
 import io
 
 def getText(tag: bs4.Tag | str | None) -> str:
-    if tag == None: return ''
-    if type(tag) == bs4.Tag: tag = tag.text
-    return tag.strip().replace('  ', ' ')
+    if type(tag) is bs4.Tag: 
+        text = tag.text
+    elif type(tag) is str:
+        text = tag
+    else: 
+        return ''
+    return text.strip().replace('  ', ' ')
 
 def formatDate(day: str|int, month: str|int, year: str|int):
     months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
@@ -40,17 +45,18 @@ def findTemplateArg(template: wtp.Template, argName: str):
 def checkLastUpdate(key: str, minDelayDays: int):
     try:
         with io.open('last-updates.json', encoding='utf8') as file:
-            data: dict = json.load(file)
+            data: dict[str,int] = json.load(file)
     except:
         data = dict()
-    if data.get(key) != None and data.get(key) > time.time() - (minDelayDays*60*60*24):
+    lastUpdate = data.get(key)
+    if type(lastUpdate) is int and lastUpdate > time.time() - (minDelayDays*60*60*24):
         return False
     data[key] = int(time.time())
     with io.open('last-updates.json', 'w', encoding='utf8') as file:
         json.dump(data, file)
     return True
 
-def addWikidataSource(repo: any, claim: pywikibot.Claim,  url: str):
+def addWikidataSource(repo: Any, claim: pywikibot.Claim,  url: str):
     now = time.localtime()
     today = pywikibot.WbTime(year=now.tm_year, month=now.tm_mon, day=now.tm_mday)
     ref = pywikibot.Claim(repo, 'P854')
