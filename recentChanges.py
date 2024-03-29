@@ -1,7 +1,7 @@
 from pywikibot.comms import eventstreams
 from datetime import datetime
 import wikitextparser as wtp
-from typing import Literal
+from typing import Literal, Any
 import pywikibot
 import utils
 import json
@@ -101,7 +101,7 @@ def checkPageContent(titel: str, content: str, todayString: str):
         if True != result: 
             yield Problem(titel, result, str(template), todayString)
 
-def checkPage(site: any, pagetitle: str, allProblems: list[Problem]):
+def checkPage(site: Any, pagetitle: str, allProblems: list[Problem]):
     try:
         page = pywikibot.Page(site, pagetitle)
         content = page.get()
@@ -115,7 +115,6 @@ def checkPage(site: any, pagetitle: str, allProblems: list[Problem]):
                 except Exception as e:
                     e.add_note(f'failed while checking if problem already existed before revision {rev.get('revid')}')
                     raise e
-            allProblems.append(problem)
             print('Problem:', problem)
             yield problem
     except pywikibot.exceptions.IsRedirectPageError:
@@ -130,7 +129,7 @@ def monitorRecentChanges():
     site = pywikibot.Site('de', 'wikipedia')
     stream.register_filter(type='edit', wiki='dewiki', namespace=0)
     numberOfChanges = 0
-    numberOfProblemsBefore = 0
+    numberOfProblemsBefore = len(allProblems)
     while True:
         try:
             change = next(stream)
