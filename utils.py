@@ -1,7 +1,9 @@
 from pywikibot import pagegenerators as pg
 import wikitextparser as wtp
 from typing import Any
+import telegramconfig
 import pywikibot
+import requests
 import time
 import json
 import bs4
@@ -64,3 +66,7 @@ def addWikidataSource(repo: Any, claim: pywikibot.Claim,  url: str):
     retrieved = pywikibot.Claim(repo, 'P813')
     retrieved.setTarget(today) 
     claim.addSources([ref, retrieved], summary=f'Bot: Adding references.')
+
+def sendTelegram(message: str, silent: bool=False):
+    url = f'https://api.telegram.org/bot'+telegramconfig.accessToken+'/sendMessage'
+    return requests.post(url, {'chat_id': telegramconfig.targetUser, 'text': message, 'disable_notification': silent}).ok

@@ -6,3 +6,4 @@ throttle.ctrl
 *.tmp
 *.json
 user-password.py
+telegramconfig.py
