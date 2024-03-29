@@ -92,7 +92,7 @@ def dumpAllProblems(allProblems: list[Problem]):
     with io.open('./problems.json', 'w', encoding='utf8') as file:
         json.dump([problem.toDict() for problem in allProblems], file, ensure_ascii=False, indent=2)
 
-def checkPage(titel: str, content: str, todayString: str):
+def checkPageContent(titel: str, content: str, todayString: str):
     for template in wtp.parse(content).templates:
         result = datesOk(template)
         if True != result: 
@@ -101,63 +101,74 @@ def checkPage(titel: str, content: str, todayString: str):
         if True != result: 
             yield Problem(titel, result, str(template), todayString)
 
+def checkPage(site: any, pagetitle: str, allProblems: list[Problem]):
+    try:
+        page = pywikibot.Page(site, pagetitle)
+        content = page.get()
+        for problem in checkPageContent(page.title(), content, getTodayString()):
+            if problem in allProblems: continue
+            for rev in page.revisions(total=50):
+                try:
+                    if rev['parentid'] == 0 or problem not in checkPageContent(page.title(), page.getOldVersion(rev['parentid']), getTodayString()): 
+                        problem.revision = rev['revid']
+                        break
+                except Exception as e:
+                    e.add_note(f'failed while checking if problem already existed before revision {rev.get('revid')}')
+                    raise e
+            allProblems.append(problem)
+            print('Problem:', problem)
+            yield problem
+    except pywikibot.exceptions.IsRedirectPageError:
+        return
+    except Exception as e:
+        e.add_note(f'failed while checking page {pagetitle}')
+        raise e
+
 def monitorRecentChanges():
     allProblems = loadAllProblems()
     stream = eventstreams.EventStreams(streams='recentchange')
     site = pywikibot.Site('de', 'wikipedia')
     stream.register_filter(type='edit', wiki='dewiki', namespace=0)
     numberOfChanges = 0
-    numberOfProblems = 0
+    numberOfProblemsBefore = 0
     while True:
         try:
             change = next(stream)
             numberOfChanges += 1
-            page = pywikibot.Page(site, 'University of Rwanda')#change['title'])
-            content = page.get()
-            for problem in checkPage(page.title(), content, getTodayString()):
-                if problem in allProblems: continue
-                numberOfProblems += 1
-                for rev in page.revisions(total=50):
-                    try:
-                        if rev['parentid'] == 0 or problem not in checkPage(page.title(), page.getOldVersion(rev['parentid']), getTodayString()): 
-                            problem.revision = rev['revid']
-                            break
-                    except Exception as e:
-                        e.add_note(f'failed while checking if problem already existed before revision {rev.get('revid')}')
-                        raise e
-                allProblems.append(problem)
-                print('Problem:', problem)
-                dumpAllProblems(allProblems)
+            allProblems += checkPage(site, change['title'], allProblems)
+            dumpAllProblems(allProblems)
             if numberOfChanges >= 100:
-                print(f'Checked 100 changes and found {numberOfProblems} problems.')
-                numberOfProblems = 0
+                print(f'Checked 100 changes and found {len(allProblems)-numberOfProblemsBefore} problems.')
+                numberOfProblemsBefore = len(allProblems)
                 numberOfChanges = 0
-        except pywikibot.exceptions.IsRedirectPageError:
-            continue
         except Exception as e:
             e.add_note(f'failed while handling recent change {change.get('revision')}')
             raise e
 
-def checkProblemList():
+def checkPagesInProblemList():
     allProblems = loadAllProblems()
     print(f'checking list of {len(allProblems)} problems ...')
     site = pywikibot.Site('de', 'wikipedia')
     index = 0
+    allPages = set()
     while index < len(allProblems):
         problem = allProblems[index]
+        allPages.add(problem.titel)
         page = pywikibot.Page(site, problem.titel)
-        if problem in checkPage(problem.titel, page.get(), problem.foundDate): 
+        if problem in checkPageContent(problem.titel, page.get(), problem.foundDate): 
             index += 1
         else:
             print('Problem in', problem.titel, 'abgearbeitet.')
             del allProblems[index]
+    for page in allPages:
+        allProblems += checkPage(site, page, allProblems)
     dumpAllProblems(allProblems)
     
 def updateWikilist():
     allProblems = loadAllProblems()
     datum = None
     titel = None
-    wikitext = ''
+    wikitext = 'Zuletzt aktualisiert am {{#time:j. F Y|{{REVISIONTIMESTAMP:Benutzer:DerIchBot/Wartungsliste}}}}.\n\n'
     for problem in allProblems:
         if datum != problem.foundDate:
             wikitext += f'== {problem.foundDate} ==\n\n'
@@ -175,7 +186,7 @@ def updateWikilist():
     site.logout()
 
 def run():
-    checkProblemList()
+    checkPagesInProblemList()
     updateWikilist()
     monitorRecentChanges()
 
