@@ -67,10 +67,14 @@ def archiveParamsOk(template: wtp.Template) -> Literal[True] | str:
 
 class Problem(dict):
     def __init__(self, titel: str|None=None, problemtyp: str|None=None, snippet: str|None=None, foundDate: str|None=None, dictionary: dict = {}):
-        if not isinstance(titel,      str): titel      = dictionary.get('titel');      assert isinstance(titel, str);      self.titel      = titel
-        if not isinstance(problemtyp, str): problemtyp = dictionary.get('problemtyp'); assert isinstance(problemtyp, str); self.problemtyp = problemtyp
-        if not isinstance(snippet,    str): snippet    = dictionary.get('snippet');    assert isinstance(snippet, str);    self.snippet    = snippet
-        if not isinstance(foundDate,  str): foundDate  = dictionary.get('foundDate');  assert isinstance(foundDate, str);  self.foundDate  = foundDate
+        if not isinstance(titel,      str): titel      = dictionary.get('titel')
+        if not isinstance(problemtyp, str): problemtyp = dictionary.get('problemtyp')
+        if not isinstance(snippet,    str): snippet    = dictionary.get('snippet')
+        if not isinstance(foundDate,  str): foundDate  = dictionary.get('foundDate')
+        assert isinstance(titel, str);      self.titel      = titel
+        assert isinstance(problemtyp, str); self.problemtyp = problemtyp
+        assert isinstance(snippet, str);    self.snippet    = snippet
+        assert isinstance(foundDate, str);  self.foundDate  = foundDate
         self.revision: int|None = dictionary.get('revision')
     def __str__(self):
         return self.titel + ': ' + self.problemtyp + ' ' + self.snippet
