@@ -3,6 +3,7 @@ from datetime import datetime
 import wikitextparser as wtp
 from typing import Literal, Any
 import pywikibot
+import traceback
 import utils
 import json
 import re
@@ -106,7 +107,7 @@ def checkPageContent(titel: str, content: str, todayString: str):
         if True != result: 
             yield Problem(titel, result, str(template), todayString)
 
-def checkPage(site: Any, pagetitle: str, allProblems: list[Problem]):
+def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousServerErrors: int=0):
     try:
         page = pywikibot.Page(site, pagetitle)
         content = page.get()
@@ -127,6 +128,15 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem]):
             yield problem
     except pywikibot.exceptions.IsRedirectPageError:
         return
+    except pywikibot.exceptions.ServerError as e:
+        e.add_note(f'failed while checking page {pagetitle}')
+        if previousServerErrors >= 4:
+            print(f'WARNING: Ignored Server Error\n{traceback.format_exc()}')
+            utils.sendTelegram(f'WARNING: Ignored Server Error\n{traceback.format_exc()}')
+            return checkPage(site, pagetitle, allProblems, previousServerErrors+1)
+        else:
+            e.add_note(f'failed after {previousServerErrors+1} server errors')
+            raise e
     except Exception as e:
         e.add_note(f'failed while checking page {pagetitle}')
         raise e
