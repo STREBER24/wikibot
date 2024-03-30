@@ -12,6 +12,7 @@ def parseWeirdDateFormats(date: str|None):
     ''' Wandelt möglichts alle Datumsformate, die die Vorlage Internetquelle akzeptiert in Format YYYY-MM-DD um '''
     try:
         if type(date) is not str: return None
+        date = date.replace('&nbsp;', ' ')
         if re.match('^[0-9]{4}(-[0-9]{2}(-[0-9]{2}(.)*)?)?$', date): 
             return date[:10]
         if re.match('^[0-9]{4}-[0-9]{2}-[0-9]$', date): 
@@ -174,10 +175,10 @@ def updateWikilist():
     allProblems = loadAllProblems()
     datum = None
     titel = None
-    wikitext = 'Zuletzt aktualisiert am {{#time:j. F Y|{{REVISIONTIMESTAMP:Benutzer:DerIchBot/Wartungsliste}}}} mit ' + str(len(allProblems)) + ' Einträgen.\n\n'
+    wikitext = '{{/Info|' + str(len(allProblems)) + '}}\n\n'
     for problem in allProblems:
         if datum != problem.foundDate:
-            wikitext += f'== {problem.foundDate} ==\n\n'
+            wikitext += f'== {utils.formatDate(problem.foundDate[8:10], problem.foundDate[5:7], problem.foundDate[0:4])} ==\n\n'
         if titel != problem.titel or datum != problem.foundDate:
             wikitext += '{{Überschriftensimulation|3|Text=[[' + problem.titel + ']]}}\n'
         wikitext += f'{problem.problemtyp}{'' if problem.revision==None else f' ([[Spezial:Diff/{problem.revision}|Änderung]])'}\n'
