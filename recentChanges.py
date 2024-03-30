@@ -113,9 +113,10 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem]):
             if problem in allProblems: continue
             for rev in page.revisions(total=50):
                 try:
+                    if rev['parentid'] == 0: problem.revision = rev['revid']; break
                     oldContent = page.getOldVersion(rev['parentid'])
                     if oldContent == None: break # Version verborgen
-                    if rev['parentid'] == 0 or problem not in checkPageContent(page.title(), oldContent, getTodayString()): 
+                    if problem not in checkPageContent(page.title(), oldContent, getTodayString()): 
                         problem.revision = rev['revid']
                         break
                 except Exception as e:
