@@ -128,6 +128,8 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
             yield problem
     except pywikibot.exceptions.IsRedirectPageError:
         return
+    except pywikibot.exceptions.NoPageError:
+        return
     except pywikibot.exceptions.ServerError as e:
         e.add_note(f'failed while checking page {pagetitle}')
         if previousServerErrors >= 4:
