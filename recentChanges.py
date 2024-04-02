@@ -10,17 +10,17 @@ import re
 import io
 
 def parseWeirdDateFormats(date: str|None):
-    ''' Wandelt möglichts alle Datumsformate, die die Vorlage Internetquelle akzeptiert in Format YYYY-MM-DD um '''
+    ''' Wandelt möglichst alle Datumsformate, die die Vorlage Internetquelle akzeptiert in Format YYYY-MM-DD um '''
     try:
         if type(date) is not str: return None
-        date = date.replace('&nbsp;', ' ')
-        if re.match('^[0-9]{4}(-[0-9]{2}(-[0-9]{2}(.)*)?)?$', date): 
+        date = date.replace(' ', ' ') # &nbsp;
+        if re.match('^[0-9]{4}(-[0-9]{2}(-[0-9]{2}.*)?)?$', date): 
             return date[:10]
         if re.match('^[0-9]{4}-[0-9]{2}-[0-9]$', date): 
             return date.split('-')[0] + '-' + date.split('-')[1] + '-' + date.split('-')[2].rjust(2,'0')
-        if re.match('^[0-9][0-9]?.[0-9][0-9]?.[0-9]{4}$', date): 
+        if re.match('^[0-9][0-9]?\\.[0-9][0-9]?\\.[0-9]{4}$', date): 
             return date.split('.')[2] + '-' + date.split('.')[1].rjust(2,'0') + '-' + date.split('.')[0].rjust(2,'0')
-        if re.match('^[0-9][0-9]?. (Januar|Jänner|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember) [0-9]{4}$', date):
+        if re.match('^[0-9][0-9]?\\. (Januar|Jänner|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember) [0-9]{4}$', date):
             return date.split(' ')[2] + '-' + str({'Januar':1, 'Jänner':1,'Februar':2,'März':3,'April':4,'Mai':5,'Juni':6,'Juli':7,'August':8,'September':9,'Oktober':10,'November':11,'Dezember':12}[date.split(' ')[1]]).rjust(2,'0') + '-' + date.split(' ')[0][:-1].rjust(2,'0')
         if re.match('^[0-9][0-9]? (January|February|March|April|May|June|July|August|September|October|November|December) [0-9]{4}$', date):
             return date.split(' ')[2] + '-' + str(['January','February','March','April','May','June','July','August','September','October','November','December'].index(date.split(' ')[1])+1).rjust(2,'0') + '-' + date.split(' ')[0].rjust(2,'0')
