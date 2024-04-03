@@ -3,5 +3,7 @@ pywikibot
 wikitextparser
 beautifulsoup4
 mypy
+psutil
+types-psutil
 types-requests
 types-beautifulsoup4
