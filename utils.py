@@ -1,4 +1,5 @@
 from pywikibot import pagegenerators as pg
+from datetime import datetime
 import wikitextparser as wtp
 from typing import Any
 import telegramconfig
@@ -8,6 +9,7 @@ import time
 import json
 import bs4
 import io
+import os
 
 def getText(tag: bs4.Tag | str | None) -> str:
     if type(tag) is bs4.Tag: 
@@ -68,5 +70,12 @@ def addWikidataSource(repo: Any, claim: pywikibot.Claim,  url: str):
     claim.addSources([ref, retrieved], summary=f'Bot: Adding references.')
 
 def sendTelegram(message: str, silent: bool=False):
+    print(f'[{datetime.now()}] send telegram: {message}')
     url = f'https://api.telegram.org/bot'+telegramconfig.accessToken+'/sendMessage'
     return requests.post(url, {'chat_id': telegramconfig.targetUser, 'text': message, 'disable_notification': silent}).ok
+
+def ensureDir(file: str):
+    dir = os.path.dirname(file)
+    if not os.path.isdir(dir):
+        os.mkdir(dir)
+        print(f'created directory {dir}')

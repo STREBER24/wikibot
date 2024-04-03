@@ -132,9 +132,13 @@ def scrape():
     
 def run():
     newData = scrape()
-    with io.open('speedcubing-data.json', 'r', encoding='utf8') as file:
-        oldData: dict[str, tuple] = json.loads(file.read())
-    with io.open('speedcubing-data.json', 'w', encoding='utf8') as file:
+    utils.ensureDir('data/speedcubing.json')
+    try:
+        with io.open('data/speedcubing.json', 'r', encoding='utf8') as file:
+            oldData: dict[str, tuple] = json.loads(file.read())
+    except FileNotFoundError:
+        oldData = {}
+    with io.open('data/speedcubing.json', 'w', encoding='utf8') as file:
         json.dump(newData, file, indent=2, ensure_ascii=False)
     changedDisciplines = [i for i in disciplines.keys() if json.dumps(oldData.get(disciplines[i]), ensure_ascii=False) != json.dumps(newData.get(disciplines.get(i)), ensure_ascii=False)]
     changes = changedDisciplines != []

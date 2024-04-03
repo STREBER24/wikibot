@@ -1,23 +1,22 @@
+from datetime import datetime
 import speedcubing
 import edelmetalle
 import traceback
 import utils
 
 if __name__ == '__main__':
-    changes = []
     try:
-        utils.sendTelegram('Start main routine ...', silent=True)
+        utils.sendTelegram('Start webscraping routine ...', silent=True)
         
         print('\n======== SPEEDCUBING ========')
-        changes.append(speedcubing.run())
+        speedcubing.run()
     
         print('\n======== EDELMETALLE ========')
-        changes.append(edelmetalle.run())
+        edelmetalle.run()
         
-        if True in changes: input('\nPress enter to exit ...')
+        print(f'\n[{datetime.now()}] finished webscraping routine\n')
     
     except Exception:
         print('[FAILED]')
         utils.sendTelegram(traceback.format_exc())
-        traceback.print_exc()
-        input('\nPress enter to exit ...')
+        

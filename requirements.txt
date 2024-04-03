@@ -1,0 +1,7 @@
+sseclient==0.0.22
+pywikibot
+wikitextparser
+beautifulsoup4
+mypy
+types-requests
+types-beautifulsoup4

@@ -4,6 +4,8 @@ apicache-py3
 throttle.ctrl
 *.lwp
 *.tmp
-*.json
+data
+logs
 user-password.py
 telegramconfig.py
+env
