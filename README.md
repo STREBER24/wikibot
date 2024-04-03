@@ -6,6 +6,8 @@ Dieses Repository beinhaltet den Code zum Betrieb des Wikipedia-Bots [DerIchBot]
 Installiere Pakete mit `pip install -r ./requirements.txt` und ergänze die Konfigurationsdateien `telegramconfig.py` und `user-password.py` und ergänze mit `crontab -e` folgende Cronjobs:
 
 ```
-0 3 * * * python3.12 /home/wikibot/main.py >> /home/wikibot/logs/main.txt
-*/30 * * * * python3.12 /home/wikibot/main.py > /dev/null 2>&1
+0 2 * * * cd /home/wikibot/ && python main.py >> logs/main.log
+*/15 * * * * cd /home/wikibot/ && python monitoring.py > /dev/null 2>&1
 ```
+
+Die Software ist für Python 3.12 getestet.
