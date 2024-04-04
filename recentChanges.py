@@ -4,6 +4,7 @@ import wikitextparser as wtp
 from typing import Literal, Any
 import pywikibot
 import traceback
+import logging
 import utils
 import json
 import time
@@ -129,7 +130,7 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
                 except Exception as e:
                     e.add_note(f'failed while checking if problem already existed before revision {rev.get('revid')}')
                     raise e
-            print('Problem:', problem)
+            logging.info(f'Problem: {problem}')
             yield problem
     except pywikibot.exceptions.IsRedirectPageError:
         return
@@ -138,7 +139,7 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
     except pywikibot.exceptions.ServerError as e:
         e.add_note(f'failed while checking page {pagetitle}')
         if previousServerErrors >= 4:
-            print(f'WARNING: Ignored Server Error\n{traceback.format_exc()}')
+            logging.warn(f'WARNING: Ignored Server Error\n{traceback.format_exc()}')
             utils.sendTelegram(f'WARNING: Ignored Server Error\n{traceback.format_exc()}')
             return checkPage(site, pagetitle, allProblems, previousServerErrors+1)
         else:
@@ -163,7 +164,7 @@ def monitorRecentChanges():
             allProblems += checkPage(site, change['title'], allProblems)
             dumpAllProblems(allProblems)
             if numberOfChanges >= 100:
-                print(f'Checked 100 changes and found {len(allProblems)-numberOfProblemsBefore} problems.')
+                logging.info(f'Checked 100 changes and found {len(allProblems)-numberOfProblemsBefore} problems.')
                 numberOfProblemsBefore = len(allProblems)
                 numberOfChanges = 0
                 while len(allProblems) >= 200:
@@ -179,7 +180,7 @@ def monitorRecentChanges():
 
 def checkPagesInProblemList():
     allProblems = loadAllProblems()
-    print(f'checking list of {len(allProblems)} problems ...')
+    logging.debug(f'checking list of {len(allProblems)} problems ...')
     site = pywikibot.Site('de', 'wikipedia')
     index = 0
     allPages = set()
@@ -187,10 +188,16 @@ def checkPagesInProblemList():
         problem = allProblems[index]
         allPages.add(problem.titel)
         page = pywikibot.Page(site, problem.titel)
-        if problem in checkPageContent(problem.titel, page.get(), problem.foundDate): 
+        try:
+            content = page.get()
+        except pywikibot.exceptions.NoPageError:
+            logging.debug(f'Artikel {problem.titel} verschwunden.')
+            del allProblems[index]
+            continue
+        if problem in checkPageContent(problem.titel, content, problem.foundDate): 
             index += 1
         else:
-            print('Problem in', problem.titel, 'abgearbeitet.')
+            logging.debug(f'Problem in {problem.titel} abgearbeitet.')
             del allProblems[index]
     for page in allPages:
         allProblems += checkPage(site, page, allProblems)
@@ -224,10 +231,11 @@ def run():
 
 if __name__ == '__main__':
     try:
-        run()
+        monitorRecentChanges()
     except KeyboardInterrupt:
         print('Exception: KeyboardInterrupt')
     except Exception as e:
+        logging.error(traceback.format_exc())
         utils.sendTelegram(traceback.format_exc())
         raise e
             
