@@ -40,20 +40,19 @@ def editWiki(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]],
              forcedSummary: str|None = None):
     site = pywikibot.Site('de', 'wikipedia')
     page = pywikibot.Page(site, pagename)
-    if page.latest_revision["user"] == 'DerIchBot' or input(f'{page.latest_revision["user"]} hat die Seite {pagename} zuletzt geändert. Trotzdem fortfahren? ').strip().lower() in ['y', 'j', 'ja', 'yes']:
-        newText = generatePage(data, parser)
-        if newText != page.text:
-            print('Update page ...')
-            page.text = newText
-            summary = f'Bot: Aktualisiere Rekord{"e" if len(changedDisciplines)>1 else ""} für {" und ".join(changedDisciplines)}.'
-            site.login()
-            assert site.logged_in()
-            page.save(botflag=True, minor=False, summary=(summary if forcedSummary==None else f'Bot: {forcedSummary}'))
-            site.logout()
-        else:
-            print('Page content did not change.')
+    if page.latest_revision["user"] != 'DerIchBot':
+        utils.sendTelegram(f'Warnung: {pagename} zuletzt von {page.latest_revision["user"]} bearbeitet.')
+    newText = generatePage(data, parser)
+    if newText != page.text:
+        print('Update page ...')
+        page.text = newText
+        summary = f'Bot: Aktualisiere Rekord{"e" if len(changedDisciplines)>1 else ""} für {" und ".join(changedDisciplines)}.'
+        site.login()
+        assert site.logged_in()
+        page.save(botflag=True, minor=False, summary=(summary if forcedSummary==None else f'Bot: {forcedSummary}'))
+        site.logout()
     else:
-        print('skipped')
+        print('Page content did not change.')
 
 def generatePage(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]], parser: typing.Callable[[list[dict[str, str]], str], str]):
     return '<onlyinclude><includeonly><!--\n-->{{#switch: {{{2}}}<!--\n  -->| Single = {{#switch: {{{1}}}' + ''.join(['<!--\n    -->| '+i.ljust(16)+' = '+parser(data[disciplines[i]][0], i) for i in disciplines.keys()]) + '<!--\n    -->| #default         = ' + parseError('Parameter 1 ungültig!') + ' }}<!--\n  -->| Average = {{#switch: {{{1}}}' + ''.join(['<!--\n    -->| '+i.ljust(16)+' = '+parser(data[disciplines[i]][1], i) for i in disciplines.keys()]) + '<!--\n    -->| #default         = ' + parseError('Parameter 1 ungültig!') + ' }}<!--\n  -->| #default = ' + parseError('Parameter 2 ungültig!') + '<!--\n-->}}</includeonly></onlyinclude>\n\n{{Dokumentation}}'

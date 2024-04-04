@@ -25,7 +25,8 @@ def update(template: str, apiNames: tuple[str, str], displayNames: tuple[str, st
     if daysSinceLastRevistion < 7:
         print('skip update')
         return False
-    if not(page.latest_revision['user'] == 'DerIchBot' or input(f'{page.latest_revision["user"]} hat die Seite Vorlage:{template} zuletzt geändert. Trotzdem fortfahren? ').strip().lower() in ['y', 'j', 'ja', 'yes']):
+    if page.latest_revision['user'] != 'DerIchBot':
+        utils.sendTelegram(f'Warnung: Vorlage:{template} zuletzt von {page.latest_revision['user']} bearbeitet.')
         return False
     noinclude = wtp.parse(page.text).get_tags()[1]
     assert noinclude.name == 'noinclude'
