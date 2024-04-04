@@ -10,15 +10,15 @@ Installiere Pakete mit `pip install -r ./requirements.txt` und ergänze die Konf
 */15 * * * * cd /home/wikibot && .venv/bin/python monitoring.py 2>> logs/monitoring_err.log
 ```
 
-Ergänze außerdem folgende Datei als `/etc/systemd/system/my_project.service` und starte den Service mit `systemctl start flaskserver`:
+Ergänze außerdem Dateien der Form `/etc/systemd/system/<...>.service` für `webserver.py` und `recentChanges.py` und registriere die Services mit `systemctl enable <...>`:
 ```
 [Unit]
-Description=Flask server
+Description=<...>
 After=network.target
 
 [Service]
 WorkingDirectory=/home/wikibot
-ExecStart=/home/wikibot/.venv/bin/python /home/wikibot/webserver.py
+ExecStart=/home/wikibot/.venv/bin/python /home/wikibot/<...>.py
 Restart=always
 
 [Install]

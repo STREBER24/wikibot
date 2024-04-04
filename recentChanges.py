@@ -6,6 +6,7 @@ import pywikibot
 import traceback
 import utils
 import json
+import time
 import re
 import io
 
@@ -89,7 +90,7 @@ class Problem(dict):
     def toDict(self):
         return {'titel': self.titel, 'problemtyp': self.problemtyp, 'snippet': self.snippet, 'foundDate': self.foundDate, 'revision': self.revision}
 
-def loadAllProblems():
+def loadAllProblems() -> list[Problem]:
     utils.ensureDir('data/problems.json')
     try:
         with io.open('data/problems.json', encoding='utf8') as file:
@@ -158,12 +159,20 @@ def monitorRecentChanges():
         try:
             change = next(stream)
             numberOfChanges += 1
+            allProblems = loadAllProblems()
             allProblems += checkPage(site, change['title'], allProblems)
             dumpAllProblems(allProblems)
             if numberOfChanges >= 100:
                 print(f'Checked 100 changes and found {len(allProblems)-numberOfProblemsBefore} problems.')
                 numberOfProblemsBefore = len(allProblems)
                 numberOfChanges = 0
+                while len(allProblems) >= 200:
+                    if utils.checkLastUpdate('check-problems-list-full', 90):
+                        checkPagesInProblemList()
+                        allProblems = loadAllProblems()
+                    else:
+                        time.sleep(180)
+                    
         except Exception as e:
             e.add_note(f'failed while handling recent change {change.get('revision')}')
             raise e
@@ -218,4 +227,7 @@ if __name__ == '__main__':
         run()
     except KeyboardInterrupt:
         print('Exception: KeyboardInterrupt')
+    except Exception as e:
+        utils.sendTelegram(traceback.format_exc())
+        raise e
             
