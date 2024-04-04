@@ -90,12 +90,16 @@ class Problem(dict):
         return {'titel': self.titel, 'problemtyp': self.problemtyp, 'snippet': self.snippet, 'foundDate': self.foundDate, 'revision': self.revision}
 
 def loadAllProblems():
-    with io.open('./problems.json', encoding='utf8') as file:
-        allProblems: list[dict] = json.load(file)
-    return [Problem(dictionary=problem) for problem in allProblems]
+    utils.ensureDir('data/problems.json')
+    try:
+        with io.open('data/problems.json', encoding='utf8') as file:
+            allProblems: list[dict] = json.load(file)
+        return [Problem(dictionary=problem) for problem in allProblems]
+    except FileNotFoundError:
+        return []
 
 def dumpAllProblems(allProblems: list[Problem]):
-    with io.open('./problems.json', 'w', encoding='utf8') as file:
+    with io.open('data/problems.json', 'w', encoding='utf8') as file:
         json.dump([problem.toDict() for problem in allProblems], file, ensure_ascii=False, indent=2)
 
 def checkPageContent(titel: str, content: str, todayString: str):

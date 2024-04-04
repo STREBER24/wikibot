@@ -7,3 +7,4 @@ psutil
 types-psutil
 types-requests
 types-beautifulsoup4
+flask

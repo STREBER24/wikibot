@@ -46,18 +46,19 @@ def findTemplateArg(template: wtp.Template, argName: str):
     stripped = parsed.plain_text(replace_templates=templateToPlainText).strip()
     return stripped if stripped != '' else None
 
-def checkLastUpdate(key: str, minDelayDays: int):
+def checkLastUpdate(key: str, minDelayMinutes: int):
+    ensureDir('data/last-updates.json')
     try:
-        with io.open('last-updates.json', encoding='utf8') as file:
+        with io.open('data/last-updates.json', encoding='utf8') as file:
             data: dict[str,int] = json.load(file)
     except:
         data = dict()
     lastUpdate = data.get(key)
-    if type(lastUpdate) is int and lastUpdate > time.time() - (minDelayDays*60*60*24):
+    if type(lastUpdate) is int and lastUpdate > time.time() - (minDelayMinutes*60):
         return False
     data[key] = int(time.time())
-    with io.open('last-updates.json', 'w', encoding='utf8') as file:
-        json.dump(data, file)
+    with io.open('data/last-updates.json', 'w', encoding='utf8') as file:
+        json.dump(data, file, ensure_ascii=False, indent=2)
     return True
 
 def addWikidataSource(repo: Any, claim: pywikibot.Claim,  url: str):
