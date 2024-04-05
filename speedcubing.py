@@ -1,10 +1,10 @@
 import pywikibot
 import requests
 import typing
+import optOut
 import utils
 import json
 import bs4
-import io
 import re
 
 disciplines = {'2x2x2': '2x2x2 Cube', 
@@ -49,7 +49,8 @@ def editWiki(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]],
         summary = f'Bot: Aktualisiere Rekord{"e" if len(changedDisciplines)>1 else ""} für {" und ".join(changedDisciplines)}.'
         site.login()
         assert site.logged_in()
-        page.save(botflag=True, minor=False, summary=(summary if forcedSummary==None else f'Bot: {forcedSummary}'))
+        if not optOut.includes(page.title()):
+            page.save(botflag=True, minor=False, summary=(summary if forcedSummary==None else f'Bot: {forcedSummary}'))
         site.logout()
     else:
         print('Page content did not change.')
@@ -131,14 +132,8 @@ def scrape():
     
 def run():
     newData = scrape()
-    utils.ensureDir('data/speedcubing.json')
-    try:
-        with io.open('data/speedcubing.json', 'r', encoding='utf8') as file:
-            oldData: dict[str, tuple] = json.loads(file.read())
-    except FileNotFoundError:
-        oldData = {}
-    with io.open('data/speedcubing.json', 'w', encoding='utf8') as file:
-        json.dump(newData, file, indent=2, ensure_ascii=False)
+    oldData: dict[str, tuple] = utils.loadJson('data/speedcubing.json', {})
+    utils.dumpJson('data/speedcubing.json', newData)
     changedDisciplines = [i for i in disciplines.keys() if json.dumps(oldData.get(disciplines[i]), ensure_ascii=False) != json.dumps(newData.get(disciplines.get(i)), ensure_ascii=False)]
     changes = changedDisciplines != []
     if not changes:

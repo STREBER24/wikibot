@@ -5,6 +5,7 @@ from typing import Literal, Any
 import pywikibot
 import traceback
 import logging
+import optOut
 import utils
 import json
 import time
@@ -92,17 +93,12 @@ class Problem(dict):
         return {'titel': self.titel, 'problemtyp': self.problemtyp, 'snippet': self.snippet, 'foundDate': self.foundDate, 'revision': self.revision}
 
 def loadAllProblems() -> list[Problem]:
-    utils.ensureDir('data/problems.json')
-    try:
-        with io.open('data/problems.json', encoding='utf8') as file:
-            allProblems: list[dict] = json.load(file)
-        return [Problem(dictionary=problem) for problem in allProblems]
-    except FileNotFoundError:
-        return []
+    content: list[dict] = utils.loadJson('data/problems.json', [])
+    return  [Problem(dictionary=problem) for problem in content]
 
 def dumpAllProblems(allProblems: list[Problem]):
-    with io.open('data/problems.json', 'w', encoding='utf8') as file:
-        json.dump([problem.toDict() for problem in allProblems], file, ensure_ascii=False, indent=2)
+    content = [problem.toDict() for problem in allProblems]
+    utils.dumpJson('data/problems.json', content)
 
 def checkPageContent(titel: str, content: str, todayString: str):
     for template in wtp.parse(content).templates:
@@ -221,7 +217,8 @@ def updateWikilist():
     page = pywikibot.Page(site, 'Benutzer:DerIchBot/Wartungsliste')
     page.text = wikitext
     site.login()
-    page.save(botflag=True, minor=False, summary=(f'Bot: Aktualisiere Wartungsliste: {len(allProblems)} Einträge'))
+    if not optOut.includes(page.title()):
+        page.save(botflag=True, minor=False, summary=(f'Bot: Aktualisiere Wartungsliste: {len(allProblems)} Einträge'))
     site.logout()
 
 def run():

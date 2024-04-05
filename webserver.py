@@ -1,5 +1,6 @@
 import recentChanges
 import traceback
+import optOut
 import utils
 import flask
 
@@ -24,6 +25,14 @@ def aktualisiere_wartungsliste_check():
         return 'Wartungsliste erfolgreich geprüft und aktualisiert. Du wirst gleich weitergeleitet ...', {"Refresh": "4; url=https://de.wikipedia.org/wiki/Benutzer:DerIchBot/Wartungsliste"}
     else:
         return 'Aktualisierung verweigert, da letzte Aktualisierung mit Prüfung weniger als 15 Minuten her ist.'
+
+@app.route('/aktualisiere-opt-out')
+def aktualisiere_opt_out(): 
+    if utils.checkLastUpdate('download-opt-out-list', 5):
+        optOut.download()
+        return 'Wartungsliste erfolgreich geprüft und aktualisiert. Du wirst gleich weitergeleitet ...', {"Refresh": "4; url=https://de.wikipedia.org/wiki/Benutzer:DerIchBot/Wartungsliste"}
+    else:
+        return 'Aktualisierung verweigert, da letzte Aktualisierung weniger als 5 Minuten her ist.'
 
 @app.route('/number-of-problems')
 def number_of_problems():

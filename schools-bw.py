@@ -3,6 +3,7 @@ import wikitextparser as wtp
 import pywikibot
 import requests
 import random
+import optOut
 import utils
 import json
 
@@ -62,7 +63,8 @@ def addAllDischs():
             disch = dischs.pop()
             template.set_arg('Schulnummer', disch, preserve_spacing=True)
             page.text = parsed
-            page.save(botflag=True, minor=False, summary=(f'Bot: Ergänze Schulnummer (DISCH). Siehe km-bw.de/Schuladressdatenbank'))
+            if not optOut.includes(page.title()):
+                page.save(botflag=True, minor=False, summary=(f'Bot: Ergänze Schulnummer (DISCH). Siehe km-bw.de/Schuladressdatenbank'))
 
 def addWikidataNumberClaim(repo: Any, item: pywikibot.ItemPage, property: str, number: int, url: str, pointInTime: pywikibot.WbTime):
     if property in item.get()['claims']:

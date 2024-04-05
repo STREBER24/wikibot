@@ -1,7 +1,7 @@
 from pywikibot import pagegenerators as pg
 from datetime import datetime
 import wikitextparser as wtp
-from typing import Any
+from typing import Any, TypeVar
 import telegramconfig
 import pywikibot
 import requests
@@ -47,18 +47,12 @@ def findTemplateArg(template: wtp.Template, argName: str):
     return stripped if stripped != '' else None
 
 def checkLastUpdate(key: str, minDelayMinutes: int):
-    ensureDir('data/last-updates.json')
-    try:
-        with io.open('data/last-updates.json', encoding='utf8') as file:
-            data: dict[str,int] = json.load(file)
-    except:
-        data = dict()
+    data: dict[str,int] = loadJson('data/last-updates.json', {})
     lastUpdate = data.get(key)
     if type(lastUpdate) is int and lastUpdate > time.time() - (minDelayMinutes*60):
         return False
     data[key] = int(time.time())
-    with io.open('data/last-updates.json', 'w', encoding='utf8') as file:
-        json.dump(data, file, ensure_ascii=False, indent=2)
+    dumpJson('data/last-updates.json', data)
     return True
 
 def addWikidataSource(repo: Any, claim: pywikibot.Claim,  url: str):
@@ -80,3 +74,17 @@ def ensureDir(file: str):
     if not os.path.isdir(dir):
         os.mkdir(dir)
         print(f'created directory {dir}')
+
+T = TypeVar("T")
+def loadJson(path: str, defaultValue: T) -> T:
+    try:
+        with io.open('data/problems.json', encoding='utf8') as file:
+            return json.load(file)
+    except FileNotFoundError:
+        return defaultValue
+
+def dumpJson(path: str, content):
+    ensureDir(path)
+    with io.open(path, 'w', encoding='utf8') as file:
+        json.dump(content, file, indent=2, ensure_ascii=False)
+    

@@ -1,5 +1,6 @@
 import pywikibot
 import requests
+import optOut
 
 def fetchAndFormat(active: str):
     data = requests.get(f'https://api.landtag-rlp.de/api/mp/filteredList?searchTerm=&active={active}').json().get('content')
@@ -15,7 +16,8 @@ def run():
         '\n'.join(fetchAndFormat('active')) + \
         '\n\n<!-- *** Ausgeschieden *** -->\n' + '\n'.join(fetchAndFormat('inactive')) + \
         '\n<!--bot-ende-->|#default=<span class="error">Biographielink für {{{1|}}} nicht vorhanden, siehe [[Vorlage:Biographie beim Landtag Rheinland-Pfalz]].</span>\n}} Biographie beim Landtag Rheinland-Pfalz]</includeonly></onlyinclude>\n\n{{Dokumentation}}'
-    page.save(botflag=True, minor=False, summary=(f'Bot: Ergänze ehemalige Abgeordnete'))
+    if not optOut.includes(page.title()):
+        page.save(botflag=True, minor=False, summary=(f'Bot: Ergänze ehemalige Abgeordnete'))
     site.logout()
 
 if __name__ == '__main__':
