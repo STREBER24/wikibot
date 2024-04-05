@@ -78,7 +78,7 @@ def ensureDir(file: str):
 T = TypeVar("T")
 def loadJson(path: str, defaultValue: T) -> T:
     try:
-        with io.open('data/problems.json', encoding='utf8') as file:
+        with io.open(path, encoding='utf8') as file:
             return json.load(file)
     except FileNotFoundError:
         return defaultValue
