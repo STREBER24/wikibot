@@ -30,7 +30,7 @@ def aktualisiere_wartungsliste_check():
 def aktualisiere_opt_out(): 
     if utils.checkLastUpdate('download-opt-out-list', 5):
         optOut.download()
-        return 'Wartungsliste erfolgreich geprüft und aktualisiert. Du wirst gleich weitergeleitet ...', {"Refresh": "4; url=https://de.wikipedia.org/wiki/Benutzer:DerIchBot/Wartungsliste"}
+        return 'Opt-Out Liste erfolgreich heruntergeladen. Du wirst gleich weitergeleitet ...', {"Refresh": "4; url=https://de.wikipedia.org/wiki/Benutzer:DerIchBot/Opt-Out_Liste"}
     else:
         return 'Aktualisierung verweigert, da letzte Aktualisierung weniger als 5 Minuten her ist.'
 
