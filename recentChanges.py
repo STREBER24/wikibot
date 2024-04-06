@@ -2,18 +2,16 @@ from pywikibot.comms import eventstreams
 from datetime import datetime
 import wikitextparser as wtp
 from typing import Literal, Any
+import deletionInfo
 import pywikibot
 import traceback
 import logging
 import optOut
 import utils
-import json
-import time
 import re
-import io
 
 def parseWeirdDateFormats(date: str|None):
-    ''' Wandelt möglichst alle Datumsformate, die die Vorlage Internetquelle akzeptiert in Format YYYY-MM-DD um '''
+    ''' Wandelt möglichst alle Datumsformate, die die Vorlage Internetquelle akzeptiert, in Format YYYY-MM-DD um '''
     try:
         if type(date) is not str: return None
         date = date.replace(' ', ' ') # &nbsp;
@@ -27,6 +25,8 @@ def parseWeirdDateFormats(date: str|None):
             return date.split(' ')[2] + '-' + str({'Januar':1, 'Jänner':1,'Februar':2,'März':3,'April':4,'Mai':5,'Juni':6,'Juli':7,'August':8,'September':9,'Oktober':10,'November':11,'Dezember':12}[date.split(' ')[1]]).rjust(2,'0') + '-' + date.split(' ')[0][:-1].rjust(2,'0')
         if re.match('^[0-9][0-9]? (January|February|March|April|May|June|July|August|September|October|November|December) [0-9]{4}$', date):
             return date.split(' ')[2] + '-' + str(['January','February','March','April','May','June','July','August','September','October','November','December'].index(date.split(' ')[1])+1).rjust(2,'0') + '-' + date.split(' ')[0].rjust(2,'0')
+        if re.match('^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) [0-9][0-9]?, [0-9]{4}$', date):
+            return date.split(', ')[1] + '-' + str(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].index(date.split(' ')[0])+1).rjust(2,'0') + '-' + date.split(', ')[0].split(' ')[1].rjust(2,'0')
         return None
     except Exception as e:
         e.add_note(f'failed while parsing weird date "{date}"')
@@ -149,27 +149,30 @@ def monitorRecentChanges():
     allProblems = loadAllProblems()
     stream = eventstreams.EventStreams(streams='recentchange')
     site = pywikibot.Site('de', 'wikipedia')
-    stream.register_filter(type='edit', wiki='dewiki', namespace=0)
+    site.login()
+    stream.register_filter(type='edit', wiki='dewiki')
     numberOfChanges = 0
     numberOfProblemsBefore = len(allProblems)
     while True:
         try:
             change = next(stream)
-            numberOfChanges += 1
-            allProblems = loadAllProblems()
-            allProblems += checkPage(site, change['title'], allProblems)
-            dumpAllProblems(allProblems)
-            if numberOfChanges >= 100:
-                logging.info(f'Checked 100 changes and found {len(allProblems)-numberOfProblemsBefore} problems.')
-                numberOfProblemsBefore = len(allProblems)
-                numberOfChanges = 0
-                while len(allProblems) >= 200:
+            if change['namespace'] == 4: # Wikipedia:XYZ
+                if re.match('^Wikipedia:Löschkandidaten/.', change['title']):
+                    deletionInfo.handleDeletionDiscussionUpdate(site, change['title'])
+            elif change['namespace'] == 0: # Artikelnamensraum
+                if len(allProblems) >= 200:
                     if utils.checkLastUpdate('check-problems-list-full', 90):
                         checkPagesInProblemList()
                         allProblems = loadAllProblems()
-                    else:
-                        time.sleep(180)
-                    
+                else:
+                    numberOfChanges += 1
+                    allProblems = loadAllProblems()
+                    allProblems += checkPage(site, change['title'], allProblems)
+                    dumpAllProblems(allProblems)
+                    if numberOfChanges >= 100:
+                        logging.info(f'Checked 100 changes and found {len(allProblems)-numberOfProblemsBefore} problems.')
+                        numberOfProblemsBefore = len(allProblems)
+                        numberOfChanges = 0
         except Exception as e:
             e.add_note(f'failed while handling recent change {change.get('revision')}')
             raise e
@@ -178,6 +181,7 @@ def checkPagesInProblemList():
     allProblems = loadAllProblems()
     logging.debug(f'checking list of {len(allProblems)} problems ...')
     site = pywikibot.Site('de', 'wikipedia')
+    site.login()
     index = 0
     allPages = set()
     while index < len(allProblems):
@@ -206,7 +210,7 @@ def updateWikilist():
     wikitext = '{{/Info|' + str(len(allProblems)) + '}}\n\n'
     for problem in allProblems:
         if datum != problem.foundDate:
-            wikitext += f'== {utils.formatDate(problem.foundDate[8:10], problem.foundDate[5:7], problem.foundDate[0:4])} ==\n\n'
+            wikitext += f'== {utils.formatDate(int(problem.foundDate[8:10]), problem.foundDate[5:7], problem.foundDate[0:4])} ==\n\n'
         if titel != problem.titel or datum != problem.foundDate:
             wikitext += '{{Überschriftensimulation|3|Text=[[' + problem.titel + ']]}}\n'
         wikitext += f'{problem.problemtyp}{'' if problem.revision==None else f' ([[Spezial:Diff/{problem.revision}|Änderung]])'}\n'
@@ -214,6 +218,7 @@ def updateWikilist():
         datum = problem.foundDate
         titel = problem.titel
     site = pywikibot.Site('de', 'wikipedia')
+    site.login()
     page = pywikibot.Page(site, 'Benutzer:DerIchBot/Wartungsliste')
     page.text = wikitext
     site.login()
@@ -234,5 +239,4 @@ if __name__ == '__main__':
     except Exception as e:
         logging.error(traceback.format_exc())
         utils.sendTelegram(traceback.format_exc())
-        raise e
             
