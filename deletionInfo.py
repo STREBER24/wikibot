@@ -17,6 +17,7 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str):
         mainAuthors = getMainAuthors(pywikibot.Page(site, pagetitle))
         for author in mainAuthors:
             if author in userlinks: continue
+            if author in utils.loadJson('data/opt-out-ld.json', []): continue
             userdisk = pywikibot.Page(site, f'Benutzer Diskussion:{author}')
             if checkForExistingInfoOnDisk(userdisk, pagetitle): continue
             renderedInfo = infoTemplate(author, pagetitle, titel)
@@ -92,7 +93,7 @@ Da bei Wikipedia jeder Löschanträge stellen darf, sind manche Löschanträge a
 
 Vielleicht fühlst du dich durch den Löschantrag vor den Kopf gestoßen, weil durch den Antrag die Arbeit, die Du in den Artikel gesteckt hast, nicht gewürdigt wird. [[WP:Sei tapfer|Sei tapfer]] und [[Wikipedia:Wikiquette|bleibe dennoch freundlich]]. Der andere meint es [[WP:Geh von guten Absichten aus|vermutlich auch gut]].
 
-Ich bin übrigens nur ein [[WP:Bots|Bot]]. Wenn ich nicht richtig funktioniere, sag bitte [[Benutzer Diskussion:DerIch27|DerIch27]] bescheid. Wenn du nicht mehr von mir benachrichtigt werden möchtest, kannst du dich auf [[Benutzer:DerIchBot/Opt-Out Liste|dieser Liste]] eintragen.
+Ich bin übrigens nur ein [[WP:Bots|Bot]]. Wenn ich nicht richtig funktioniere, sag bitte [[Benutzer Diskussion:DerIch27|DerIch27]] bescheid. Wenn du nicht mehr von mir benachrichtigt werden möchtest, kannst du dich auf [[Benutzer:Xqbot/Opt-out:LD-Hinweis|dieser]] oder [[Benutzer:DerIchBot/Opt-Out Liste|dieser Liste]] eintragen.
 
 Freundliche Grüsse  --~~~~"""
 
