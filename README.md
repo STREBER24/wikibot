@@ -20,6 +20,8 @@ After=network.target
 WorkingDirectory=/home/wikibot
 ExecStart=/home/wikibot/.venv/bin/python /home/wikibot/<...>.py
 Restart=always
+StandardOutput=append:/home/wikibot/logs/<...>.log
+StandardError=append:/home/wikibot/logs/<...>_err.log
 
 [Install]
 WantedBy=multi-user.target
