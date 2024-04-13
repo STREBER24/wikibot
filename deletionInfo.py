@@ -41,7 +41,7 @@ def parseDeletionDisk(page: pywikibot.Page):
         titellinks = wtp.parse(sec.title).wikilinks
         if len(titellinks) == 0: continue
         pagetitle = titellinks[0].target
-        if re.match('\\((erl\\., )?(LAE|LAZ)\\)', sec.title): logging.info(f'ignore {pagetitle} LAE'); continue
+        if re.search('\\((erl\\., )?(LAE|LAZ)\\)', sec.title): logging.info(f'ignore {pagetitle} LAE'); continue
         userlinks = set([':'.join(link.target.split(':')[1:]) for link in sec.wikilinks if re.match('^(Benutzer:|Benutzer Diskussion:)', link.target)])
         result[pagetitle] = userlinks
     return result
@@ -56,7 +56,7 @@ def parseRevisionHistory(page: pywikibot.Page) -> tuple[set[str], dict[str,dict]
         authors: dict[str,dict] = {}
         pagesize = 0
         for rev in page.revisions(reverse=True):
-            if re.match('.*verschob die Seite \\[\\[(.)*\\]\\] nach \\[\\[(.)*\\]\\].*', rev['comment']):
+            if re.search('verschob die Seite \\[\\[(.)*\\]\\] nach \\[\\[(.)*\\]\\]', rev['comment']):
                 for link in wtp.parse(rev['comment']).wikilinks:
                     allTitles.add(link.target)
             if authors.get(rev['user']) == None:
