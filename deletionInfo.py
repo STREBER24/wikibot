@@ -17,6 +17,7 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str):
         if any([logs.get(i)!=None for i in allTitles]): continue
         for author in mainAuthors:
             if not mainAuthors[author]['major']: continue
+            if re.match(ipRegex, author): print(f'do not notify {author} because he is ip'); continue
             if author in userlinks: print(f'do not notify {author} because already on deletion disk'); continue
             if author in utils.loadJson('data/opt-out-ld.json', []): print(f'do not notify {author} because of opt out'); continue
             userdisk = pywikibot.Page(site, f'Benutzer Diskussion:{author}')
