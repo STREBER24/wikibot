@@ -21,7 +21,7 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str):
             if author in userlinks: print(f'do not notify {author} because already on deletion disk'); continue
             if author in utils.loadJson('data/opt-out-ld.json', []): print(f'do not notify {author} because of opt out'); continue
             userdisk = pywikibot.Page(site, f'Benutzer Diskussion:{author}')
-            if checkForExistingInfoOnDisk(userdisk, pagetitle): continue
+            if checkForExistingInfoOnDisk(userdisk, pagetitle): print(f'do not notify {author} because already notified on userdisk');  continue
             renderedInfo = infoTemplate(author, pagetitle, titel)
             if addToPage(userdisk, renderedInfo, f'Informiere über Löschantrag zu [[{pagetitle}]].'):
                 mainAuthors[author]['notified'] = True
@@ -83,7 +83,7 @@ def checkForExistingInfoOnDisk(disk: pywikibot.Page, pagetitle: str):
         parsed = wtp.parse(content)
         for sec in parsed.sections:
             if sec.title is None: continue
-            if pagetitle not in sec.title: continue
+            if (pagetitle not in sec.title) and (wtp.parse(pagetitle).plain_text() not in sec.title): continue
             if 'lösch' in sec.contents.lower(): return True
         return False
     except pywikibot.exceptions.NoPageError:
@@ -116,7 +116,7 @@ def addToPage(page: pywikibot.Page, text: str, summary: str):
         return False
     page.text = page.text + text
     try:
-        page.save(summary=f'Bot: {summary}')
+        page.save(summary=f'Bot: {summary}', minor=False, botflag=False)
         return True
     except pywikibot.exceptions.LockedPageError:
         return False
