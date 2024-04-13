@@ -1,6 +1,7 @@
 import wikitextparser as wtp
 import recentChanges
 import pywikibot
+import logging
 import optOut
 import utils
 import re
@@ -12,22 +13,22 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str):
     parsedDeletionDisk = parseDeletionDisk(pywikibot.Page(site, titel))
     for pagetitle, userlinks in parsedDeletionDisk.items():
         if logs.get(pagetitle) != None: continue
-        print(f'Check page {pagetitle} on deletion disk ...')
+        logging.info(f'Check page {pagetitle} on deletion disk ...')
         allTitles, mainAuthors = parseRevisionHistory(pywikibot.Page(site, pagetitle))
         if any([logs.get(i)!=None for i in allTitles]): continue
         for author in mainAuthors:
             if not mainAuthors[author]['major']: continue
-            if re.match(ipRegex, author): print(f'do not notify {author} because he is ip'); continue
-            if author in userlinks: print(f'do not notify {author} because already on deletion disk'); continue
-            if author in utils.loadJson('data/opt-out-ld.json', []): print(f'do not notify {author} because of opt out'); continue
+            if re.match(ipRegex, author): logging.info(f'do not notify {author} because he is ip'); continue
+            if author in userlinks: logging.info(f'do not notify {author} because already on deletion disk'); continue
+            if author in utils.loadJson('data/opt-out-ld.json', []): logging.info(f'do not notify {author} because of opt out'); continue
             userdisk = pywikibot.Page(site, f'Benutzer Diskussion:{author}')
-            if checkForExistingInfoOnDisk(userdisk, pagetitle): print(f'do not notify {author} because already notified on userdisk');  continue
+            if checkForExistingInfoOnDisk(userdisk, pagetitle): logging.info(f'do not notify {author} because already notified on userdisk');  continue
             renderedInfo = infoTemplate(author, pagetitle, titel)
             if addToPage(userdisk, renderedInfo, f'Informiere über Löschantrag zu [[{pagetitle}]].'):
                 mainAuthors[author]['notified'] = True
-                print(f'Notify {author} about deletion disk of {pagetitle}')
+                logging.info(f'Notify {author} about deletion disk of {pagetitle}')
             else:
-                print(f'do not notify {author} because saving failed')
+                logging.info(f'do not notify {author} because saving failed')
         logs[pagetitle] = sortMainAuthors(mainAuthors)[-5:]
         utils.dumpJson(f'data/deletionInfo/{date}.json', logs)
 
@@ -40,7 +41,7 @@ def parseDeletionDisk(page: pywikibot.Page):
         titellinks = wtp.parse(sec.title).wikilinks
         if len(titellinks) == 0: continue
         pagetitle = titellinks[0].target
-        if '(LAZ)' in sec.title: print(f'ignore {pagetitle}: LAZ'); continue
+        if re.match('\\((erl\\., )?(LAE|LAZ)\\)', sec.title): logging.info(f'ignore {pagetitle} LAE'); continue
         userlinks = set([':'.join(link.target.split(':')[1:]) for link in sec.wikilinks if re.match('^(Benutzer:|Benutzer Diskussion:)', link.target)])
         result[pagetitle] = userlinks
     return result
@@ -49,7 +50,7 @@ def sortMainAuthors(authors: dict[str,dict]):
     return sorted(authors.items(), key=lambda autor: autor[1]['score']+1e10*autor[1]['creator'])
 
 def parseRevisionHistory(page: pywikibot.Page) -> tuple[set[str], dict[str,dict]]:
-    print(f'parse revision history of page {page.title()} ...')
+    logging.info(f'parse revision history of page {page.title()} ...')
     try:
         allTitles: set[str] = {page.title()}
         authors: dict[str,dict] = {}
@@ -75,7 +76,7 @@ def parseRevisionHistory(page: pywikibot.Page) -> tuple[set[str], dict[str,dict]
                 authors[autor]['major'] = True
         return allTitles, authors
     except pywikibot.exceptions.NoPageError:
-        print('pgae not found :-(')
+        logging.info('page not found :-(')
         return set(), dict()
     
 def checkForExistingInfoOnDisk(disk: pywikibot.Page, pagetitle: str):
