@@ -40,6 +40,7 @@ def parseDeletionDisk(page: pywikibot.Page):
         titellinks = wtp.parse(sec.title).wikilinks
         if len(titellinks) == 0: continue
         pagetitle = titellinks[0].target
+        if '(LAZ)' in sec.title: print(f'ignore {pagetitle}: LAZ'); continue
         userlinks = set([':'.join(link.target.split(':')[1:]) for link in sec.wikilinks if re.match('^(Benutzer:|Benutzer Diskussion:)', link.target)])
         result[pagetitle] = userlinks
     return result
