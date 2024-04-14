@@ -1,7 +1,7 @@
 from pywikibot.comms import eventstreams
+from typing import Literal, Any
 from datetime import datetime
 import wikitextparser as wtp
-from typing import Literal, Any
 import deletionInfo
 import pywikibot
 import traceback
@@ -222,7 +222,7 @@ def updateWikilist():
     page = pywikibot.Page(site, 'Benutzer:DerIchBot/Wartungsliste')
     page.text = wikitext
     site.login()
-    if not optOut.includes(page.title()):
+    if optOut.isAllowed(page):
         page.save(botflag=True, minor=False, summary=(f'Bot: Aktualisiere Wartungsliste: {len(allProblems)} Einträge'))
     site.logout()
 

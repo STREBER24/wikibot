@@ -49,7 +49,7 @@ def editWiki(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]],
         summary = f'Bot: Aktualisiere Rekord{"e" if len(changedDisciplines)>1 else ""} für {" und ".join(changedDisciplines)}.'
         site.login()
         assert site.logged_in()
-        if not optOut.includes(page.title()):
+        if optOut.isAllowed(page):
             page.save(botflag=True, minor=False, summary=(summary if forcedSummary==None else f'Bot: {forcedSummary}'))
         site.logout()
     else:

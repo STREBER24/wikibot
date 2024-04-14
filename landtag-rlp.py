@@ -16,7 +16,7 @@ def run():
         '\n'.join(fetchAndFormat('active')) + \
         '\n\n<!-- *** Ausgeschieden *** -->\n' + '\n'.join(fetchAndFormat('inactive')) + \
         '\n<!--bot-ende-->|#default=<span class="error">Biographielink für {{{1|}}} nicht vorhanden, siehe [[Vorlage:Biographie beim Landtag Rheinland-Pfalz]].</span>\n}} Biographie beim Landtag Rheinland-Pfalz]</includeonly></onlyinclude>\n\n{{Dokumentation}}'
-    if not optOut.includes(page.title()):
+    if optOut.isAllowed(page):
         page.save(botflag=True, minor=False, summary=(f'Bot: Ergänze ehemalige Abgeordnete'))
     site.logout()
 

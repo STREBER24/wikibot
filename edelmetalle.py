@@ -35,7 +35,7 @@ def update(template: str, apiNames: tuple[str, str], displayNames: tuple[str, st
     page.text = "<includeonly>{{#if:{{{Datum|}}} | " + datum + " | {{#if:{{{" + option + "|}}}\n| {{formatnum:\n     {{#expr: ( " + data[0] + " <!-- " + displayNames[0] + " in USD --> / {{Wechselkursdaten|USD}} * {{Wechselkursdaten|{{{1|USD}}}}} / {{#if:{{{Gramm|}}}|31.1034768|1}} ) ^ {{#if:{{{Invert|}}}|-1|1}} * {{{Faktor|1}}} round {{{NKS|2}}} }}\n  }}\n| {{formatnum:\n     {{#expr: ( " + data[1] + " <!-- " + displayNames[1] + " in USD --> / {{Wechselkursdaten|USD}} * {{Wechselkursdaten|{{{1|USD}}}}} / {{#if:{{{Gramm|}}}|31.1034768|1}} ) ^ {{#if:{{{Invert|}}}|-1|1}} * {{{Faktor|1}}} round {{{NKS|2}}} }}\n  }}\n}}\n}}</includeonly>" + str(noinclude)
     site.login()
     assert site.logged_in()
-    if not optOut.includes(page.title()):
+    if optOut.isAllowed(page):
         page.save(botflag=True, minor=False, summary=(f'Bot: Aktualisiere Preise: Schlusskurs vom {datum}'))
     site.logout()
     return True

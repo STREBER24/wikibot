@@ -22,14 +22,14 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str):
             if author in userlinks: logging.info(f'do not notify {author} because already on deletion disk'); continue
             if author in utils.loadJson('data/opt-out-ld.json', []): logging.info(f'do not notify {author} because of opt out'); continue
             userdisk = pywikibot.Page(site, f'Benutzer Diskussion:{author}')
-            if checkForExistingInfoOnDisk(userdisk, pagetitle): logging.info(f'do not notify {author} because already notified on userdisk');  continue
+            if checkForExistingInfoOnDisk(userdisk, allTitles): logging.info(f'do not notify {author} because already notified on userdisk');  continue
             renderedInfo = infoTemplate(author, pagetitle, titel)
             if addToPage(userdisk, renderedInfo, f'Informiere über Löschantrag zu [[{pagetitle}]].'):
                 mainAuthors[author]['notified'] = True
                 logging.info(f'Notify {author} about deletion disk of {pagetitle}')
             else:
                 logging.info(f'do not notify {author} because saving failed')
-        logs[pagetitle] = sortMainAuthors(mainAuthors)[-5:]
+        logs[pagetitle] = dict(sortMainAuthors(mainAuthors)[-5:])
         utils.dumpJson(f'data/deletionInfo/{date}.json', logs)
 
 def parseDeletionDisk(page: pywikibot.Page):
@@ -41,7 +41,7 @@ def parseDeletionDisk(page: pywikibot.Page):
         titellinks = wtp.parse(sec.title).wikilinks
         if len(titellinks) == 0: continue
         pagetitle = titellinks[0].target
-        if re.search('\\((erl\\., )?(LAE|LAZ)\\)', sec.title): logging.info(f'ignore {pagetitle} LAE'); continue
+        if re.search('\\((erl\\., )?(LAE|LAZ)\\)', sec.title): logging.info(f'ignore {pagetitle} because LAE'); continue
         userlinks = set([':'.join(link.target.split(':')[1:]) for link in sec.wikilinks if re.match('^(Benutzer:|Benutzer Diskussion:)', link.target)])
         result[pagetitle] = userlinks
     return result
@@ -79,17 +79,14 @@ def parseRevisionHistory(page: pywikibot.Page) -> tuple[set[str], dict[str,dict]
         logging.info('page not found :-(')
         return set(), dict()
     
-def checkForExistingInfoOnDisk(disk: pywikibot.Page, pagetitle: str):
-    try:
-        content = disk.get()
-        parsed = wtp.parse(content)
+def checkForExistingInfoOnDisk(disk: pywikibot.Page, pagetitles: set[str]):
+    parsed = wtp.parse(disk.text)
+    for pagetitle in pagetitles:
         for sec in parsed.sections:
             if sec.title is None: continue
             if (pagetitle not in sec.title) and (wtp.parse(pagetitle).plain_text() not in sec.title): continue
             if 'lösch' in sec.contents.lower(): return True
-        return False
-    except pywikibot.exceptions.NoPageError:
-        return False
+    return False
 
 ipRegex = re.compile('^(((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])|((([0-9a-fA-F]){1,4})\\:){7}([0-9a-fA-F]){1,4})$') 
 interwikiRegex = re.compile('^en>')  
@@ -114,7 +111,7 @@ Ich bin übrigens nur ein [[WP:Bots|Bot]]. Wenn ich nicht richtig funktioniere, 
 Freundliche Grüsse  --~~~~"""
 
 def addToPage(page: pywikibot.Page, text: str, summary: str):
-    if optOut.includes(page.title()):
+    if not optOut.isAllowed(page):
         return False
     page.text = page.text + text
     try:
@@ -126,6 +123,5 @@ def addToPage(page: pywikibot.Page, text: str, summary: str):
 if __name__ == '__main__':
     site = pywikibot.Site('de', 'wikipedia')
     site.login()
-    page = pywikibot.Page(site, 'Walter Schmidt (Rechtswissenschaftler, 1934)')
-    print(parseRevisionHistory(page))
+    print(parseDeletionDisk(pywikibot.Page(site, 'Wikipedia:Löschkandidaten/12. April 2024')))
     #handleDeletionDiscussionUpdate(site, 'Wikipedia:Löschkandidaten/heute')
