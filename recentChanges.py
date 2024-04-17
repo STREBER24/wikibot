@@ -134,7 +134,7 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
         return
     except pywikibot.exceptions.ServerError as e:
         e.add_note(f'failed while checking page {pagetitle}')
-        if previousServerErrors >= 4:
+        if previousServerErrors <= 4:
             logging.warn(f'WARNING: Ignored Server Error\n{traceback.format_exc()}')
             utils.sendTelegram(f'WARNING: Ignored Server Error\n{traceback.format_exc()}')
             return checkPage(site, pagetitle, allProblems, previousServerErrors+1)
@@ -147,8 +147,8 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
 
 def monitorRecentChanges():
     allProblems = loadAllProblems()
-    stream = eventstreams.EventStreams(streams='recentchange')
     site = pywikibot.Site('de', 'wikipedia')
+    stream = eventstreams.EventStreams(streams='recentchange', APISite=site)
     site.login()
     stream.register_filter(type='edit', wiki='dewiki')
     numberOfChanges = 0
