@@ -148,7 +148,7 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
 def monitorRecentChanges():
     allProblems = loadAllProblems()
     site = pywikibot.Site('de', 'wikipedia')
-    stream = eventstreams.EventStreams(streams='recentchange', APISite=site)
+    stream = eventstreams.EventStreams(streams='recentchange')
     site.login()
     stream.register_filter(type='edit', wiki='dewiki')
     numberOfChanges = 0
