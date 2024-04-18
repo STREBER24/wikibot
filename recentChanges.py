@@ -25,7 +25,7 @@ parseMonthDict = {'Januar':1, 'Jänner':1, 'January':1, 'Jan':1,
                   'Dezember':12, 'December':12, 'Dec':12}
 
 def parseWeirdDateFormats(date: str|None):
-    ''' Wandelt möglichst alle Datumsformate, die die Vorlage Internetquelle akzeptiert, in Format YYYY-MM-DD um '''
+    ''' Wandelt möglichst alle Datumsformate, die die Vorlage Internetquelle akzeptiert, in Format YYYY-MM-DD um. Gibt False für ungültige Daten zurück. '''
     try:
         if type(date) is not str: return None
         date = date.replace(' ', ' ') # &nbsp;
@@ -37,11 +37,13 @@ def parseWeirdDateFormats(date: str|None):
             return date.split('.')[2] + '-' + date.split('.')[1].rjust(2,'0') + '-' + date.split('.')[0].rjust(2,'0')
         if re.match('^[0-9][0-9]?\\. (Januar|Jänner|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember) [0-9]{4}$', date):
             return date.split(' ')[2] + '-' + str(parseMonthDict[date.split(' ')[1]]).rjust(2,'0') + '-' + date.split(' ')[0][:-1].rjust(2,'0')
+        if re.match('^(Januar|Jänner|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember) [0-9]{4}$', date):
+            return date.split(' ')[1] + '-' + str(parseMonthDict[date.split(' ')[0]]).rjust(2,'0')
         if re.match('^[0-9][0-9]? (January|February|March|April|May|June|July|August|September|October|November|December) [0-9]{4}$', date):
             return date.split(' ')[2] + '-' + str(parseMonthDict[date.split(' ')[1]]).rjust(2,'0') + '-' + date.split(' ')[0].rjust(2,'0')
         if re.match('^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) [0-9][0-9]?, [0-9]{4}$', date):
             return date.split(', ')[1] + '-' + str(parseMonthDict[date.split(' ')[0]]).rjust(2,'0') + '-' + date.split(', ')[0].split(' ')[1].rjust(2,'0')
-        return None
+        return False
     except Exception as e:
         e.add_note(f'failed while parsing weird date "{date}"')
         raise e
@@ -58,6 +60,9 @@ def datesOk(template: wtp.Template) -> Literal[True] | str:
     abruf   = parseWeirdDateFormats(utils.findTemplateArg(template, 'abruf'  if isInternetquelle else 'Abruf'))
     zugriff = parseWeirdDateFormats(utils.findTemplateArg(template, 'zugriff'if isInternetquelle else 'Zugriff'))
     datum   = parseWeirdDateFormats(utils.findTemplateArg(template, 'datum'  if isInternetquelle else 'Datum'))
+    if abruf == False: return 'Abrufdatum ungültig.'
+    if zugriff == False: return 'Zugriffsdatum ungültig.'
+    if datum == False: return 'Veröffentlichungsdatum ungültig.'
     if abruf == None and zugriff == None and isInternetquelle: return "Pflichtparameter abruf nicht gesetzt."
     if abruf == None and zugriff == None and not isInternetquelle: return True
     if abruf != None and zugriff != None: return "Parameter abruf und zugriff beide gesetzt."
@@ -74,8 +79,10 @@ def archiveParamsOk(template: wtp.Template) -> Literal[True] | str:
     archivdatum = parseWeirdDateFormats(utils.findTemplateArg(template, 'archiv-datum'))
     abrufdatum  = parseWeirdDateFormats(utils.findTemplateArg(template, 'abruf'))
     datum       = parseWeirdDateFormats(utils.findTemplateArg(template, 'datum'))
+    if archivdatum == False: return 'Archivierungsdatum ungültig.'
+    if abrufdatum == False or datum == False: return True # wird von datesOk abgefangen
     if archivurl == None and archivdatum == None: return True
-    if archivurl == None and archivdatum != None: return "Parameter archiv-datum ohne Parameter archiv-url gesetzt."
+    if archivurl == None and archivdatum != None: return True
     if archivdatum != None: archivdatum = archivdatum.replace('-', '')
     if abrufdatum  != None: abrufdatum  = abrufdatum.replace('-', '')
     if datum       != None: datum       = datum.replace('-', '')
