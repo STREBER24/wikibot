@@ -2,15 +2,21 @@ import wikitextparser as wtp
 import recentChanges
 import pywikibot
 import logging
-import optOut
+import katdisk
 import utils
 import re
 
-def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str):
+def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change: dict|None = None):
     date = recentChanges.parseWeirdDateFormats(titel[26:])
     if date is None or  date < '2024-04-06': return
     logs: dict[str, dict[str,dict]] = utils.loadJson(f'data/deletionInfo/{date}.json', {})
-    parsedDeletionDisk = parseDeletionDisk(pywikibot.Page(site, titel))
+    deletionDiskPage = pywikibot.Page(site, titel) 
+    wrongKats = katdisk.extractFromDeletionDisk(deletionDiskPage.text)
+    if wrongKats != '': 
+        utils.sendTelegram(f'Eintrag zu Kategorien auf Löschdiskussionsseite:\n{titel}')
+        logging.info(change)
+        return
+    parsedDeletionDisk = parseDeletionDisk(deletionDiskPage)
     for pagetitle, userlinks in parsedDeletionDisk.items():
         if logs.get(pagetitle) != None: continue
         logging.info(f'Check page {pagetitle} on deletion disk ...')
@@ -24,7 +30,8 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str):
             userdisk = pywikibot.Page(site, f'Benutzer Diskussion:{author}')
             if checkForExistingInfoOnDisk(userdisk, allTitles): logging.info(f'do not notify {author} because already notified on userdisk');  continue
             renderedInfo = infoTemplate(author, pagetitle, titel)
-            if addToPage(userdisk, renderedInfo, f'Informiere über Löschantrag zu [[{pagetitle}]].'):
+            userdisk.text += renderedInfo
+            if utils.savePage(userdisk, f'Informiere über Löschantrag zu [[{pagetitle}]].'):
                 mainAuthors[author]['notified'] = True
                 logging.info(f'Notify {author} about deletion disk of {pagetitle}')
             else:
@@ -34,7 +41,7 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str):
 
 def parseDeletionDisk(page: pywikibot.Page):
     result: dict[str,set[str]] = {} # {pagetitle: userlinks}
-    content = page.get()
+    content = page.text
     parsed = wtp.parse(content)
     for sec in parsed.sections:
         if sec.level != 2: continue
@@ -80,25 +87,48 @@ def parseRevisionHistory(page: pywikibot.Page) -> tuple[set[str], dict[str,dict]
         return set(), dict()
     
 def checkForExistingInfoOnDisk(disk: pywikibot.Page, pagetitles: set[str]):
-    parsed = wtp.parse(disk.text)
-    for pagetitle in pagetitles:
-        for sec in parsed.sections:
-            if sec.title is None: continue
-            if (pagetitle not in sec.title) and (wtp.parse(pagetitle).plain_text() not in sec.title): continue
-            if 'lösch' in sec.contents.lower(): return True
-    return False
+    try:
+        parsed = wtp.parse(disk.text)
+        for pagetitle in pagetitles:
+            for sec in parsed.sections:
+                if sec.title is None: continue
+                if (pagetitle not in sec.title) and (wtp.parse(pagetitle).plain_text() not in sec.title): continue
+                if 'lösch' in sec.contents.lower(): return True
+        return False
+    except pywikibot.exceptions.InvalidTitleError:
+        logging.warn(f'got invalid title while checking for existing info on disk {disk.title()}')
+        return False
 
 ipRegex = re.compile('^(((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])|((([0-9a-fA-F]){1,4})\\:){7}([0-9a-fA-F]){1,4})$') 
-interwikiRegex = re.compile('^en>')  
+interwikiRegex = re.compile('^(en|fr)>')  
 
 def infoTemplate(username: str, pagetitle: str, deletionDiskTitle: str):
     isIP = bool(re.match(ipRegex, username))
-    return f"""
+    sectiontitle = pagetitle.replace(' ','_')
+    if sectiontitle.startswith(':Vorlage'):
+        return f"""
 == [[{pagetitle}]] ==
 
 Hallo{'' if isIP else ' '+username},
 
-gegen den im Betreff genannten, von dir angelegten oder erheblich bearbeiteten Artikel wurde ein Löschantrag gestellt (nicht von mir). Bitte entnimm den Grund dafür der '''[[{deletionDiskTitle}#{pagetitle.replace(' ','_')}|Löschdiskussion]]'''. Ob der Artikel tatsächlich gelöscht wird, wird sich gemäß unserer [[WP:Löschregeln|Löschregeln]] im Laufe der siebentägigen Löschdiskussion entscheiden. 
+gegen die im Betreff genannte, von dir angelegte oder erheblich bearbeitete Vorlage wurde ein Löschantrag gestellt (nicht von mir). Bitte entnimm den Grund dafür der '''[[{deletionDiskTitle}#{sectiontitle[1:]}|Löschdiskussion]]'''. Ob die Vorlage tatsächlich gelöscht wird, wird sich gemäß unserer [[WP:Löschregeln|Löschregeln]] im Laufe der siebentägigen Löschdiskussion entscheiden. 
+
+Du bist herzlich eingeladen, dich an der [[{deletionDiskTitle}#{pagetitle.replace(' ','_')}|Löschdiskussion]] zu beteiligen. Wenn du möchtest, dass die Vorlage behalten wird, kannst du dort die Argumente, die für eine Löschung sprechen, entkräften. Du kannst auch während der Löschdiskussion Verbesserungen an der Vorlage vornehmen.
+
+Da bei Wikipedia jeder Löschanträge stellen darf, sind manche Löschanträge auch offensichtlich unbegründet; solche Anträge kannst du ignorieren.
+
+Vielleicht fühlst du dich durch den Löschantrag vor den Kopf gestoßen, weil durch den Antrag die Arbeit, die Du in den Artikel gesteckt hast, nicht gewürdigt wird. [[WP:Sei tapfer|Sei tapfer]] und [[Wikipedia:Wikiquette|bleibe dennoch freundlich]]. Der andere meint es [[WP:Geh von guten Absichten aus|vermutlich auch gut]].
+
+Ich bin übrigens nur ein [[WP:Bots|Bot]]. Wenn ich nicht richtig funktioniere, sag bitte [[Benutzer Diskussion:DerIch27|DerIch27]] bescheid. Wenn du nicht mehr von mir benachrichtigt werden möchtest, kannst du dich auf [[Benutzer:Xqbot/Opt-out:LD-Hinweis|dieser]] oder [[Benutzer:DerIchBot/Opt-Out Liste|dieser Liste]] eintragen.
+
+Freundliche Grüsse  --~~~~"""
+    else:
+        return f"""
+== [[{pagetitle}]] ==
+
+Hallo{'' if isIP else ' '+username},
+
+gegen den im Betreff genannten, von dir angelegten oder erheblich bearbeiteten Artikel wurde ein Löschantrag gestellt (nicht von mir). Bitte entnimm den Grund dafür der '''[[{deletionDiskTitle}#{sectiontitle}|Löschdiskussion]]'''. Ob der Artikel tatsächlich gelöscht wird, wird sich gemäß unserer [[WP:Löschregeln|Löschregeln]] im Laufe der siebentägigen Löschdiskussion entscheiden. 
 
 Du bist herzlich eingeladen, dich an der [[{deletionDiskTitle}#{pagetitle.replace(' ','_')}|Löschdiskussion]] zu beteiligen. Wenn du möchtest, dass der Artikel behalten wird, kannst du dort die Argumente, die für eine Löschung sprechen, entkräften, indem du dich beispielsweise zur [[Wikipedia:Relevanzkriterien|enzyklopädischen Relevanz]] des Artikels äußerst. Du kannst auch während der Löschdiskussion Artikelverbesserungen vornehmen, die die Relevanz besser erkennen lassen und die [[Wikipedia:Artikel#Mindestanforderungen|Mindestqualität]] sichern.
 
@@ -109,19 +139,8 @@ Vielleicht fühlst du dich durch den Löschantrag vor den Kopf gestoßen, weil d
 Ich bin übrigens nur ein [[WP:Bots|Bot]]. Wenn ich nicht richtig funktioniere, sag bitte [[Benutzer Diskussion:DerIch27|DerIch27]] bescheid. Wenn du nicht mehr von mir benachrichtigt werden möchtest, kannst du dich auf [[Benutzer:Xqbot/Opt-out:LD-Hinweis|dieser]] oder [[Benutzer:DerIchBot/Opt-Out Liste|dieser Liste]] eintragen.
 
 Freundliche Grüsse  --~~~~"""
-
-def addToPage(page: pywikibot.Page, text: str, summary: str):
-    if not optOut.isAllowed(page):
-        return False
-    page.text = page.text + text
-    try:
-        page.save(summary=f'Bot: {summary}', minor=False, botflag=False)
-        return True
-    except pywikibot.exceptions.LockedPageError:
-        return False
-
+        
 if __name__ == '__main__':
     site = pywikibot.Site('de', 'wikipedia')
     site.login()
-    print(parseDeletionDisk(pywikibot.Page(site, 'Wikipedia:Löschkandidaten/12. April 2024')))
-    #handleDeletionDiscussionUpdate(site, 'Wikipedia:Löschkandidaten/heute')
+    handleDeletionDiscussionUpdate(site, 'Wikipedia:Löschkandidaten/18. April 2024')

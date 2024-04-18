@@ -5,6 +5,7 @@ from typing import Any, TypeVar
 import telegramconfig
 import pywikibot
 import requests
+import optOut
 import time
 import json
 import bs4
@@ -87,4 +88,12 @@ def dumpJson(path: str, content):
     ensureDir(path)
     with io.open(path, 'w', encoding='utf8') as file:
         json.dump(content, file, indent=2, ensure_ascii=False)
-    
+
+def savePage(page: pywikibot.Page, summary: str):
+    if not optOut.isAllowed(page):
+        return False
+    try:
+        page.save(summary=f'Bot: {summary}', minor=False, botflag=False)
+        return True
+    except pywikibot.exceptions.LockedPageError:
+        return False

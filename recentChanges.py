@@ -6,9 +6,23 @@ import deletionInfo
 import pywikibot
 import traceback
 import logging
+import katdisk
 import optOut
 import utils
 import re
+
+parseMonthDict = {'Januar':1, 'Jänner':1, 'January':1, 'Jan':1,
+                  'Februar':2, 'February':2, 'Feb':2,
+                  'März':3, 'March':3, 'Mar':3,
+                  'April':4, 'Apr':4,
+                  'Mai':5, 'May':5,
+                  'Juni':6, 'June':6, 'Jun':6,
+                  'Juli':7, 'July':7, 'Jul':7,
+                  'August':8, 'Aug':8,
+                  'September':9, 'Sep':9,
+                  'Oktober':10, 'October':10, 'Oct':10,
+                  'November':11, 'Nov':11,
+                  'Dezember':12, 'December':12, 'Dec':12}
 
 def parseWeirdDateFormats(date: str|None):
     ''' Wandelt möglichst alle Datumsformate, die die Vorlage Internetquelle akzeptiert, in Format YYYY-MM-DD um '''
@@ -22,11 +36,11 @@ def parseWeirdDateFormats(date: str|None):
         if re.match('^[0-9][0-9]?\\.[0-9][0-9]?\\.[0-9]{4}$', date): 
             return date.split('.')[2] + '-' + date.split('.')[1].rjust(2,'0') + '-' + date.split('.')[0].rjust(2,'0')
         if re.match('^[0-9][0-9]?\\. (Januar|Jänner|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember) [0-9]{4}$', date):
-            return date.split(' ')[2] + '-' + str({'Januar':1, 'Jänner':1,'Februar':2,'März':3,'April':4,'Mai':5,'Juni':6,'Juli':7,'August':8,'September':9,'Oktober':10,'November':11,'Dezember':12}[date.split(' ')[1]]).rjust(2,'0') + '-' + date.split(' ')[0][:-1].rjust(2,'0')
+            return date.split(' ')[2] + '-' + str(parseMonthDict[date.split(' ')[1]]).rjust(2,'0') + '-' + date.split(' ')[0][:-1].rjust(2,'0')
         if re.match('^[0-9][0-9]? (January|February|March|April|May|June|July|August|September|October|November|December) [0-9]{4}$', date):
-            return date.split(' ')[2] + '-' + str(['January','February','March','April','May','June','July','August','September','October','November','December'].index(date.split(' ')[1])+1).rjust(2,'0') + '-' + date.split(' ')[0].rjust(2,'0')
+            return date.split(' ')[2] + '-' + str(parseMonthDict[date.split(' ')[1]]).rjust(2,'0') + '-' + date.split(' ')[0].rjust(2,'0')
         if re.match('^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) [0-9][0-9]?, [0-9]{4}$', date):
-            return date.split(', ')[1] + '-' + str(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'].index(date.split(' ')[0])+1).rjust(2,'0') + '-' + date.split(', ')[0].split(' ')[1].rjust(2,'0')
+            return date.split(', ')[1] + '-' + str(parseMonthDict[date.split(' ')[0]]).rjust(2,'0') + '-' + date.split(', ')[0].split(' ')[1].rjust(2,'0')
         return None
     except Exception as e:
         e.add_note(f'failed while parsing weird date "{date}"')
@@ -156,9 +170,13 @@ def monitorRecentChanges():
     while True:
         try:
             change = next(stream)
+            if re.match('Bot: Benachrichtigung über Löschdiskussion zum Artikel', change['comment']):
+                utils.sendTelegram(f'Xqbot aktiv:\nhttps://de.wikipedia.org/wiki/Spezial:Diff/{change['revision']['old']}')
             if change['namespace'] == 4: # Wikipedia:XYZ
                 if re.match('^Wikipedia:Löschkandidaten/.', change['title']):
-                    deletionInfo.handleDeletionDiscussionUpdate(site, change['title'])
+                    deletionInfo.handleDeletionDiscussionUpdate(site, change['title'], change)
+                if re.match('^Wikipedia:WikiProjekt Kategorien/Diskussionen/[0-9]{4}/(Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)/[0-9][0-9]?$', change['title']):
+                    katdisk.handleKatDiscussionUpdate(site, change['title'])
             elif change['namespace'] == 0: # Artikelnamensraum
                 if len(allProblems) >= 200:
                     if utils.checkLastUpdate('check-problems-list-full', 90):
@@ -233,6 +251,7 @@ def run():
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+    utils.sendTelegram('start recent changes service ...', silent=True)
     try:
         monitorRecentChanges()
     except KeyboardInterrupt:
