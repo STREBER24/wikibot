@@ -14,8 +14,10 @@ def extractFromDeletionDisk(content: str):
         if sec.title != None:
             result += sec.level*'=' + ' ' + sec.title + ' ' + sec.level*'='
         result += sec.contents
+    result = result.strip()
     if re.match('^{{Löschkandidatenseite|erl=.*}}$', result.split('\n')[0]):
         result = '\n'.join(result.split('\n')[1:])
+    result = result.strip()
     if re.match('^<!-- Hinweis an den letzten Bearbeiter: Wenn alles erledigt ist, hinter "erl=" mit --~~~~ signieren. -->', result.split('\n')[0]):
         result = '\n'.join(result.split('\n')[1:])
     return result.strip()
@@ -54,7 +56,8 @@ def parseKatDisk(page: pywikibot.Page):
         for link in titellinks:
             if not link.target.startswith(':Kategorie:'): continue
             kattitle = link.target[1:]
-            userlinks = set([':'.join(link.target.split(':')[1:]) for link in sec.wikilinks if re.match('^(Benutzer:|Benutzer Diskussion:)', link.target)])
+            userlinks = set([':'.join(link.target.split(':')[1:]) for link in sec.wikilinks if re.match('^(Benutzer:|Benutzer Diskussion:)', link.target)]+
+                            [utils.findTemplateArg(template, '1') for template in sec.templates if template.name.strip().lower() == 'ping'])
             result[kattitle] = userlinks
     return result
 
