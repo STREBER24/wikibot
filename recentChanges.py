@@ -9,6 +9,7 @@ import logging
 import katdisk
 import optOut
 import utils
+import pytz
 import re
 
 parseMonthDict = {'Januar':1, 'Jänner':1, 'January':1, 'Jan':1,
@@ -41,7 +42,7 @@ def parseWeirdDateFormats(date: str|None):
             return date.split(' ')[1] + '-' + str(parseMonthDict[date.split(' ')[0]]).rjust(2,'0')
         if re.match('^[0-9][0-9]? (January|February|March|April|May|June|July|August|September|October|November|December) [0-9]{4}$', date):
             return date.split(' ')[2] + '-' + str(parseMonthDict[date.split(' ')[1]]).rjust(2,'0') + '-' + date.split(' ')[0].rjust(2,'0')
-        if re.match('^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) [0-9][0-9]?, [0-9]{4}$', date):
+        if re.match('^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December) [0-9][0-9]?, [0-9]{4}$', date):
             return date.split(', ')[1] + '-' + str(parseMonthDict[date.split(' ')[0]]).rjust(2,'0') + '-' + date.split(', ')[0].split(' ')[1].rjust(2,'0')
         return False
     except Exception as e:
@@ -49,30 +50,31 @@ def parseWeirdDateFormats(date: str|None):
         raise e
 
 def getTodayString():
-    return datetime.now().strftime('%Y-%m-%d')
+    ''' Gibt Datum in der Form YYYY-MM-DD deutscher Zeit zurück '''
+    return datetime.now(tz=pytz.timezone('Europe/Berlin')).strftime('%Y-%m-%d')
 
 def datesOk(template: wtp.Template) -> Literal[True] | str:
-    ''' Prüft, ob Daten der Vorlagen Internetquelle und Literatur in der Zukunft liegen '''
-    if template.name.strip() not in ['Internetquelle', 'Literatur']:
+    ''' Prüft, ob Daten der Vorlagen Internetquelle, Literatur und Cite web in der Zukunft liegen '''
+    templateName = template.name.strip()
+    if templateName not in ['Internetquelle', 'Literatur', 'Cite web']:
         return True
     todayString = getTodayString()
-    isInternetquelle = template.name.strip() == 'Internetquelle'
-    abruf   = parseWeirdDateFormats(utils.findTemplateArg(template, 'abruf'  if isInternetquelle else 'Abruf'))
-    zugriff = parseWeirdDateFormats(utils.findTemplateArg(template, 'zugriff'if isInternetquelle else 'Zugriff'))
-    datum   = parseWeirdDateFormats(utils.findTemplateArg(template, 'datum'  if isInternetquelle else 'Datum'))
+    abruf   = parseWeirdDateFormats(utils.findTemplateArg(template, {'Internetquelle': 'abruf',   'Literatur': 'Abruf',   'Cite web': 'access-date'}[templateName]))
+    zugriff = parseWeirdDateFormats(utils.findTemplateArg(template, {'Internetquelle': 'zugriff', 'Literatur': 'Zugriff', 'Cite web': 'accessdate'}[templateName]))
+    datum   = parseWeirdDateFormats(utils.findTemplateArg(template, {'Internetquelle': 'datum',   'Literatur': 'Datum',   'Cite web': 'date'}[templateName]))
     if abruf == False: return 'Abrufdatum ungültig.'
     if zugriff == False: return 'Zugriffsdatum ungültig.'
     if datum == False: return 'Veröffentlichungsdatum ungültig.'
-    if abruf == None and zugriff == None and isInternetquelle: return "Pflichtparameter abruf nicht gesetzt."
-    if abruf == None and zugriff == None and not isInternetquelle: return True
+    if datum != None and datum > todayString: return "Parameter datum liegt in der Zukunft."
+    if abruf == None and zugriff == None and templateName == 'Internetquelle': return "Pflichtparameter abruf nicht gesetzt."
+    if abruf == None and zugriff == None and templateName != 'Internetquelle': return True
     if abruf != None and zugriff != None: return "Parameter abruf und zugriff beide gesetzt."
     if abruf == None: abruf = zugriff
     if abruf > todayString: return "Parameter abruf/zugriff liegt in der Zukunft."
-    if datum != None and datum > todayString: return "Parameter datum liegt in der Zukunft."
     return True
 
 def archiveParamsOk(template: wtp.Template) -> Literal[True] | str:
-    ''' Prüft, ob Parameter archiv-url und archiv-datum der Vorlage Internetquelle konsistent sind '''
+    ''' Prüft, ob Parameter archiv-url und archiv-datum der Vorlagen Internetquelle und Cite web konsistent sind '''
     if template.name.strip() != 'Internetquelle': return True
     if utils.findTemplateArg(template, 'titel') == None: return 'Pflichtparameter titel nicht gesetzt.'
     archivurl   = utils.findTemplateArg(template, 'archiv-url')
@@ -82,13 +84,13 @@ def archiveParamsOk(template: wtp.Template) -> Literal[True] | str:
     if archivdatum == False: return 'Archivierungsdatum ungültig.'
     if abrufdatum == False or datum == False: return True # wird von datesOk abgefangen
     if archivurl == None and archivdatum == None: return True
-    if archivurl == None and archivdatum != None: return True
+    if archivurl == None and archivdatum != None: return True # 'Parameter archiv-datum ohne archiv-url gesetzt.'
     if archivdatum != None: archivdatum = archivdatum.replace('-', '')
     if abrufdatum  != None: abrufdatum  = abrufdatum.replace('-', '')
     if datum       != None: datum       = datum.replace('-', '')
     if not re.match('^https://web.archive.org/web/[0-9]{14}/', archivurl): return True
     if archivurl[28:36] == archivdatum or archivurl[28:36] == abrufdatum or archivurl[28:36] == datum: return True
-    if archivdatum == None: return "Kein Archivierungsdatum gesetzt."
+    if archivdatum == None: return True # "Kein Archivierungsdatum gesetzt."
     return "Falsches Archivierungsdatum gesetzt."
 
 class Problem(dict):
@@ -156,7 +158,7 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
     except pywikibot.exceptions.ServerError as e:
         e.add_note(f'failed while checking page {pagetitle}')
         if previousServerErrors <= 4:
-            logging.warn(f'WARNING: Ignored Server Error\n{traceback.format_exc()}')
+            logging.warning(f'WARNING: Ignored Server Error\n{traceback.format_exc()}')
             utils.sendTelegram(f'WARNING: Ignored Server Error\n{traceback.format_exc()}')
             return checkPage(site, pagetitle, allProblems, previousServerErrors+1)
         else:
@@ -185,7 +187,7 @@ def monitorRecentChanges():
                 if re.match('^Wikipedia:WikiProjekt Kategorien/Diskussionen/[0-9]{4}/(Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)/[0-9][0-9]?$', change['title']):
                     katdisk.handleKatDiscussionUpdate(site, change['title'])
             elif change['namespace'] == 0: # Artikelnamensraum
-                if len(allProblems) >= 200:
+                if len(allProblems) >= 300:
                     if utils.checkLastUpdate('check-problems-list-full', 90):
                         checkPagesInProblemList()
                         allProblems = loadAllProblems()
