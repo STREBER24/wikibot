@@ -66,15 +66,16 @@ def parseRevisionHistory(page: pywikibot.Page) -> tuple[set[str], dict[str,dict]
             if re.search('verschob die Seite \\[\\[(.)*\\]\\] nach \\[\\[(.)*\\]\\]', rev['comment']):
                 for link in wtp.parse(rev['comment']).wikilinks:
                     allTitles.add(link.target)
-            if authors.get(rev['user']) == None:
-                if re.match(interwikiRegex, rev['user']): continue
-                authors[rev['user']] = {'score': 0, 'major': False, 'notified': False, 'creator': False}
+            user = rev['user'][3:] if rev['user'].startswith('de>') else rev['user']
+            if authors.get(user) == None:
+                if re.match(interwikiRegex, user): continue
+                authors[user] = {'score': 0, 'major': False, 'notified': False, 'creator': False}
             if rev['parentid'] == 0:
-                authors[rev['user']]['major'] = True
-                authors[rev['user']]['creator'] = True
+                authors[user]['major'] = True
+                authors[user]['creator'] = True
             sizediff = max(0, rev['size']-pagesize); pagesize = rev['size']
-            authors[rev['user']]['score'] += (sizediff**0.5)/10
-            authors[rev['user']]['score'] += 1/3 if rev['minor'] else 1
+            authors[user]['score'] += (sizediff**0.5)/10
+            authors[user]['score'] += 1/3 if rev['minor'] else 1
         for autor in authors:
             if authors[autor]['score'] < 3: continue
             if authors[autor]['score'] >= max([author['score'] for author in authors.values()]):
@@ -96,11 +97,11 @@ def checkForExistingInfoOnDisk(disk: pywikibot.Page, pagetitles: set[str]):
                 if 'lösch' in sec.contents.lower(): return True
         return False
     except pywikibot.exceptions.InvalidTitleError:
-        logging.warn(f'got invalid title while checking for existing info on disk {disk.title()}')
+        logging.warn(f'got invalid title while checking for existing info on disk')
         return False
 
 ipRegex = re.compile('^(((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])|((([0-9a-fA-F]){1,4})\\:){7}([0-9a-fA-F]){1,4})$') 
-interwikiRegex = re.compile('^(en|fr)>')  
+interwikiRegex = re.compile('^[a-z][a-z]>')  
 
 def infoTemplate(username: str, pagetitle: str, deletionDiskTitle: str):
     isIP = bool(re.match(ipRegex, username))

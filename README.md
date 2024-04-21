@@ -19,7 +19,7 @@ After=network.target
 [Service]
 WorkingDirectory=/home/wikibot
 ExecStart=/home/wikibot/.venv/bin/python /home/wikibot/<...>.py
-Restart=always
+Restart=on-abnormal
 StandardOutput=append:/home/wikibot/logs/<...>.log
 StandardError=append:/home/wikibot/logs/<...>_err.log
 
