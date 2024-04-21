@@ -18,26 +18,30 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change
         return
     parsedDeletionDisk = parseDeletionDisk(deletionDiskPage)
     for pagetitle, userlinks in parsedDeletionDisk.items():
-        if logs.get(pagetitle) != None: continue
-        logging.info(f'Check page {pagetitle} on deletion disk ...')
-        allTitles, mainAuthors = parseRevisionHistory(pywikibot.Page(site, pagetitle))
-        if any([logs.get(i)!=None for i in allTitles]): continue
-        for author in mainAuthors:
-            if not mainAuthors[author]['major']: continue
-            if re.match(ipRegex, author): logging.info(f'do not notify {author} because he is ip'); continue
-            if author in userlinks: logging.info(f'do not notify {author} because already on deletion disk'); continue
-            if author in utils.loadJson('data/opt-out-ld.json', []): logging.info(f'do not notify {author} because of opt out'); continue
-            userdisk = pywikibot.Page(site, f'Benutzer Diskussion:{author}')
-            if checkForExistingInfoOnDisk(userdisk, allTitles): logging.info(f'do not notify {author} because already notified on userdisk');  continue
-            renderedInfo = infoTemplate(author, pagetitle, titel)
-            userdisk.text += renderedInfo
-            if utils.savePage(userdisk, f'Informiere über Löschantrag zu [[{pagetitle}]].'):
-                mainAuthors[author]['notified'] = True
-                logging.info(f'Notify {author} about deletion disk of {pagetitle}')
-            else:
-                logging.info(f'do not notify {author} because saving failed')
-        logs[pagetitle] = dict(sortMainAuthors(mainAuthors)[-5:])
-        utils.dumpJson(f'data/deletionInfo/{date}.json', logs)
+        try:
+            if logs.get(pagetitle) != None: continue
+            logging.info(f'Check page {pagetitle} on deletion disk ...')
+            allTitles, mainAuthors = parseRevisionHistory(pywikibot.Page(site, pagetitle))
+            if any([logs.get(i)!=None for i in allTitles]): continue
+            for author in mainAuthors:
+                if not mainAuthors[author]['major']: continue
+                if re.match(ipRegex, author): logging.info(f'do not notify {author} because he is ip'); continue
+                if author in userlinks: logging.info(f'do not notify {author} because already on deletion disk'); continue
+                if author in utils.loadJson('data/opt-out-ld.json', []): logging.info(f'do not notify {author} because of opt out'); continue
+                userdisk = pywikibot.Page(site, f'Benutzer Diskussion:{author}')
+                if checkForExistingInfoOnDisk(userdisk, allTitles): logging.info(f'do not notify {author} because already notified on userdisk');  continue
+                renderedInfo = infoTemplate(author, pagetitle, titel)
+                userdisk.text += renderedInfo
+                if utils.savePage(userdisk, f'Informiere über Löschantrag zu [[{pagetitle}]].'):
+                    mainAuthors[author]['notified'] = True
+                    logging.info(f'Notify {author} about deletion disk of {pagetitle}')
+                else:
+                    logging.info(f'do not notify {author} because saving failed')
+            logs[pagetitle] = dict(sortMainAuthors(mainAuthors)[-5:])
+            utils.dumpJson(f'data/deletionInfo/{date}.json', logs)
+        except Exception as e:
+            e.add_note(f'failed while checking page {pagetitle} on deletion disk')
+            raise e
 
 def parseDeletionDisk(page: pywikibot.Page):
     result: dict[str,set[str]] = {} # {pagetitle: userlinks}
