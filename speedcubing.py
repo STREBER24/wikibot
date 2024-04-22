@@ -83,7 +83,7 @@ def parseTime(data: list[dict[str, str]], discipline: str):
     assert isinstance(ergebnis, str) and ergebnis != ''
     einheit = 'Züge' if 'moves' in discipline else ('Minuten' if ':' in ergebnis else 'Sekunden')
     ergebnisList = ergebnis.replace('.',',').split(' ')
-    return ergebnis[0] + '<!--' + ' '*(8-len(ergebnisList[0])) + '-->{{#if: {{#invoke:TemplUtl|faculty|{{{3|}}}}} | ' + ('&#32;in '+ergebnisList[1] if len(ergebnisList)>1 else '') + '&nbsp;' + einheit + '}}'
+    return ergebnisList[0] + '<!--' + ' '*(8-len(ergebnisList[0])) + '-->{{#if: {{#invoke:TemplUtl|faculty|{{{3|}}}}} | ' + ('&#32;in '+ergebnisList[1] if len(ergebnisList)>1 else '') + '&nbsp;' + einheit + '}}'
 
 def parseEvents(data: list[dict[str, str]], discipline: str):
     if data == []: return parseError('Keine Daten für diese Parameterkombination.')
