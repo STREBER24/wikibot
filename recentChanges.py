@@ -181,6 +181,8 @@ def monitorRecentChanges():
             change = next(stream)
             if re.match('Bot: Benachrichtigung über Löschdiskussion zum Artikel', change['comment']):
                 utils.sendTelegram(f'Xqbot aktiv:\nhttps://de.wikipedia.org/wiki/Spezial:Diff/{change['revision']['old']}')
+            if 'DerIchBot' in change['comment']:
+                utils.sendTelegram(str(change))
             if change['namespace'] == 4: # Wikipedia:XYZ
                 if re.match('^Wikipedia:Löschkandidaten/.', change['title']):
                     deletionInfo.handleDeletionDiscussionUpdate(site, change['title'], change)
