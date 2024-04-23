@@ -6,21 +6,29 @@ import logging
 import utils
 import re
 
-def extractFromDeletionDisk(content: str):
+def extractFromDeletionDisk(content: str) -> tuple[str,str]: # (Kategorien, Rest)
     parsed = wtp.parse(content)
     result = ''
     for sec in parsed.sections:
         if sec.level == 1 and (sec.title or '').strip() == 'Benutzerseiten': break
         if sec.title != None:
-            result += sec.level*'=' + ' ' + sec.title + ' ' + sec.level*'='
-        result += sec.contents
-    result = result.strip()
-    if re.match('^{{Löschkandidatenseite|erl=.*}}$', result.split('\n')[0]):
-        result = '\n'.join(result.split('\n')[1:])
-    result = result.strip()
-    if re.match('^<!-- Hinweis an den letzten Bearbeiter: Wenn alles erledigt ist, hinter "erl=" mit --~~~~ signieren. -->', result.split('\n')[0]):
-        result = '\n'.join(result.split('\n')[1:])
-    return result.strip()
+            result += '\n' + sec.level*'=' + ' ' + sec.title + ' ' + sec.level*'=' + '\n' + sec.contents
+            del sec.title
+            sec.contents = ''
+        else:
+            split = sec.contents.strip().split('\n')
+            newContents = []
+            if re.match('^{{Löschkandidatenseite|erl=.*}}$', split[0]):
+                newContents.append(split[0])
+                split.pop(0)
+            while split[0].strip() == '':
+                split.pop(0)
+            if re.match('^<!-- Hinweis an den letzten Bearbeiter: Wenn alles erledigt ist, hinter "erl=" mit --~~~~ signieren. -->', split[0]):
+                newContents.append(split[0])
+                split.pop(0)
+            sec.contents = '\n'.join(newContents) + '\n\n'
+            result += '\n'.join(split)
+    return result.strip().strip().replace('\n<span></span>\n','\n').replace('\n\n\n', '\n\n'), parsed.string.strip().replace('\n\n\n', '\n\n')
 
 def handleKatDiscussionUpdate(site: pywikibot._BaseSite, titel: str):
     date = titel.split('/')[2] + '-' + str(recentChanges.parseMonthDict[titel.split('/')[3]]).rjust(2,'0') + '-' + titel.split('/')[4].rjust(2,'0')
@@ -39,7 +47,7 @@ def handleKatDiscussionUpdate(site: pywikibot._BaseSite, titel: str):
         userdisk = pywikibot.Page(site, f'Benutzer Diskussion:{creator}')
         renderedInfo = infoTemplate(creator, kattitle, titel)
         userdisk.text += renderedInfo
-        if utils.savePage(userdisk, f'Informiere über Diskussion zu [[:{kattitle}]].'):
+        if utils.savePage(userdisk, f'Informiere über Diskussion zu [[:{kattitle}]].', botflag=False):
             logs[kattitle] = creator
             logging.info(f'Notify {creator} about kat-disk of {kattitle}')
         else:

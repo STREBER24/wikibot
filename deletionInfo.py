@@ -7,14 +7,23 @@ import utils
 import re
 
 def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change: dict|None = None):
+    assert re.match('^Wikipedia:Löschkandidaten/.', titel)
     date = recentChanges.parseWeirdDateFormats(titel[26:])
     if date is None or date is False or date < '2024-04-06': return
     logs: dict[str, dict[str,dict]] = utils.loadJson(f'data/deletionInfo/{date}.json', {})
     deletionDiskPage = pywikibot.Page(site, titel) 
-    wrongKats = katdisk.extractFromDeletionDisk(deletionDiskPage.text)
+    wrongKats, rest = katdisk.extractFromDeletionDisk(deletionDiskPage.text)
     if wrongKats != '': 
-        utils.sendTelegram(f'Eintrag zu Kategorien auf Löschdiskussionsseite:\n{titel}', silent=True)
+        logging.info('Verschiebe Eintrag von Löschdiskussionsseite nach WikiProjekt Kategorien')
         logging.info(change)
+        utils.sendTelegram(f'Eintrag zu Kategorien auf Löschdiskussionsseite:\n{titel}', silent=True)
+        userLink = '???' if change is None else f'[[Benutzer:{change['user']}]]'
+        katDiskLink = f'Wikipedia:WikiProjekt Kategorien/Diskussionen/{date[:4]}/{['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'][int(date[5:7])-1]}/{int(date[8:10])}'
+        deletionDiskPage.text = rest
+        utils.savePage(deletionDiskPage, f'Verschiebe Beitrag von {userLink} nach [[{katdisk}]]', botflag=True)
+        katDiskPage = pywikibot.Page(site, katDiskLink)
+        katDiskPage.text += wrongKats
+        utils.savePage(deletionDiskPage, f'Verschiebe Beitrag von {userLink} aus [[{titel}]]', botflag=True)
         return
     parsedDeletionDisk = parseDeletionDisk(deletionDiskPage)
     for pagetitle, userlinks in parsedDeletionDisk.items():
@@ -32,7 +41,7 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change
                 if checkForExistingInfoOnDisk(userdisk, allTitles): logging.info(f'do not notify {author} because already notified on userdisk');  continue
                 renderedInfo = infoTemplate(author, pagetitle, titel)
                 userdisk.text += renderedInfo
-                if utils.savePage(userdisk, f'Informiere über Löschantrag zu [[{pagetitle}]].'):
+                if utils.savePage(userdisk, f'Informiere über Löschantrag zu [[{pagetitle}]].', botflag=False):
                     mainAuthors[author]['notified'] = True
                     logging.info(f'Notify {author} about deletion disk of {pagetitle}')
                 else:
