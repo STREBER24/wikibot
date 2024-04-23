@@ -216,7 +216,7 @@ def checkPagesInProblemList():
         allPages.add(problem.titel)
         page = pywikibot.Page(site, problem.titel)
         try:
-            content = page.get()
+            content = page.text
         except pywikibot.exceptions.NoPageError:
             logging.debug(f'Artikel {problem.titel} verschwunden.')
             del allProblems[index]
