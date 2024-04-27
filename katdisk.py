@@ -19,12 +19,12 @@ def extractFromDeletionDisk(content: str) -> tuple[str,str]: # (Kategorien, Rest
         else:
             split = sec.contents.strip().split('\n')
             newContents = []
-            if re.match('^{{Löschkandidatenseite|erl=.*}}$', split[0]):
+            if len(split)>0 and re.match('^{{Löschkandidatenseite|erl=.*}}$', split[0]):
                 newContents.append(split[0])
                 split.pop(0)
             while len(split)>0 and split[0].strip() == '':
                 split.pop(0)
-            if re.match('^<!-- Hinweis an den letzten Bearbeiter: Wenn alles erledigt ist, hinter "erl=" mit --~~~~ signieren. -->', split[0]):
+            if len(split)>0 and re.match('^<!-- Hinweis an den letzten Bearbeiter: Wenn alles erledigt ist, hinter "erl=" mit --~~~~ signieren. -->', split[0]):
                 newContents.append(split[0])
                 split.pop(0)
             sec.contents = '\n'.join(newContents) + '\n\n'

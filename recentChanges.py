@@ -159,7 +159,7 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
         e.add_note(f'failed while checking page {pagetitle}')
         if previousServerErrors <= 4:
             logging.warning(f'WARNING: Ignored Server Error\n{traceback.format_exc()}')
-            utils.sendTelegram(f'WARNING: Ignored Server Error\n{traceback.format_exc()}')
+            utils.sendTelegram('WARNING: Ignored Server Error')
             return checkPage(site, pagetitle, allProblems, previousServerErrors+1)
         else:
             e.add_note(f'failed after {previousServerErrors+1} server errors')
@@ -213,6 +213,7 @@ def checkPagesInProblemList():
     site.login()
     index = 0
     allPages = set()
+    previousServerErrors = 0
     while index < len(allProblems):
         problem = allProblems[index]
         allPages.add(problem.titel)
@@ -223,6 +224,15 @@ def checkPagesInProblemList():
             logging.debug(f'Artikel {problem.titel} verschwunden.')
             del allProblems[index]
             continue
+        except pywikibot.exceptions.ServerError as e:
+            previousServerErrors += 1
+            if previousServerErrors <= 4:
+                logging.warning(f'WARNING: Ignored Server Error\n{traceback.format_exc()}')
+                utils.sendTelegram('WARNING: Ignored Server Error')
+                continue
+            else:
+                e.add_note(f'failed after {previousServerErrors+1} server errors')
+                raise e
         if problem in checkPageContent(problem.titel, content, problem.foundDate): 
             index += 1
         else:
@@ -269,5 +279,5 @@ if __name__ == '__main__':
         print('Exception: KeyboardInterrupt')
     except Exception as e:
         logging.error(traceback.format_exc())
-        utils.sendTelegram(traceback.format_exc())
+        utils.sendTelegram('Mimimi, du hast mich nicht gut programmiert, deshalb stürze ich jetzt ab:\n\n' + traceback.format_exc())
             
