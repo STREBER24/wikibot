@@ -20,10 +20,10 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change
         userLink = '???' if change is None else f'[[Benutzer:{change['user']}]]'
         katDiskLink = f'Wikipedia:WikiProjekt Kategorien/Diskussionen/{date[:4]}/{['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'][int(date[5:7])-1]}/{int(date[8:10])}'
         deletionDiskPage.text = rest
-        utils.savePage(deletionDiskPage, f'Verschiebe Beitrag von {userLink} nach [[{katdisk}]]', botflag=True)
+        utils.savePage(deletionDiskPage, f'Verschiebe Beitrag von {userLink} nach [[{katDiskLink}]]', botflag=True)
         katDiskPage = pywikibot.Page(site, katDiskLink)
-        katDiskPage.text += wrongKats
-        utils.savePage(deletionDiskPage, f'Verschiebe Beitrag von {userLink} aus [[{titel}]]', botflag=True)
+        katDiskPage.text += '\n' + wrongKats
+        utils.savePage(katDiskPage, f'Verschiebe Beitrag von {userLink} aus [[{titel}]]', botflag=True)
         return
     parsedDeletionDisk = parseDeletionDisk(deletionDiskPage)
     for pagetitle, userlinks in parsedDeletionDisk.items():
