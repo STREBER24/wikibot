@@ -168,6 +168,19 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
         e.add_note(f'failed while checking page {pagetitle}')
         raise e
 
+def alarmOnChange(change: dict):
+    def notify(msg: str):
+        logging.warning(change)
+        utils.sendTelegram(f'{msg}:\nhttps://de.wikipedia.org/wiki/Spezial:Diff/{change['revision']['old']}')
+    if re.match('Bot: Benachrichtigung über Löschdiskussion zum Artikel', change['comment']):
+        notify('XqBot aktiv')
+        return True
+    if change['user'] == 'TaxonBot' and re.match('^Bot: [1-9] Abschnitt nach [[Benutzer Diskussion:.*]] archiviert – letzte Bearbeitung: [[user:DerIchBot|DerIchBot]] (.*)$', change['comment']):
+        return False
+    if 'DerIchBot' in change['comment']:
+        notify('DerIchBot erwähnt')
+        return True
+
 def monitorRecentChanges():
     allProblems = loadAllProblems()
     site = pywikibot.Site('de', 'wikipedia')
@@ -179,10 +192,7 @@ def monitorRecentChanges():
     while True:
         try:
             change = next(stream)
-            if re.match('Bot: Benachrichtigung über Löschdiskussion zum Artikel', change['comment']):
-                utils.sendTelegram(f'Xqbot aktiv:\nhttps://de.wikipedia.org/wiki/Spezial:Diff/{change['revision']['old']}')
-            if 'DerIchBot' in change['comment']:
-                utils.sendTelegram(str(change))
+            alarmOnChange(change)
             if change['namespace'] == 4: # Wikipedia:XYZ
                 if re.match('^Wikipedia:Löschkandidaten/.', change['title']):
                     deletionInfo.handleDeletionDiscussionUpdate(site, change['title'], change)
