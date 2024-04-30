@@ -47,6 +47,7 @@ def handleKatDiscussionUpdate(site: pywikibot._BaseSite, titel: str):
         if creator is None: logging.info(f'no creator of {kattitle} found'); continue
         if re.match(ipRegex, creator): logging.info(f'do not notify {creator} because he is ip'); continue
         if creator in userlinks: logging.info(f'do not notify {creator} because already on kat-disk'); continue
+        if utils.isBlockedForInfinity(site, creator): logging.info(f'do not notify {creator} because he is blocked'); continue
         userdisk = pywikibot.Page(site, f'Benutzer Diskussion:{creator}')
         renderedInfo = infoTemplate(creator, kattitle, titel)
         userdisk.text += renderedInfo

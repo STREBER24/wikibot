@@ -5,6 +5,7 @@ from typing import Any, TypeVar
 import telegramconfig
 import pywikibot
 import requests
+import logging
 import optOut
 import time
 import json
@@ -97,3 +98,10 @@ def savePage(page: pywikibot.Page, summary: str, botflag: bool):
         return True
     except pywikibot.exceptions.LockedPageError:
         return False
+
+def isBlockedForInfinity(site: pywikibot.APISite, username: str):
+    for i in site.blocks(total=1, reverse=True, users=username):
+        if i.get('expiry') == 'infinity':
+            logging.debug(f'{username} if blocked for infinity')
+            return True
+    return False

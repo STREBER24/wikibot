@@ -37,6 +37,7 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change
                 if re.match(ipRegex, author): logging.info(f'do not notify {author} because he is ip'); continue
                 if author in userlinks: logging.info(f'do not notify {author} because already on deletion disk'); continue
                 if author in utils.loadJson('data/opt-out-ld.json', []): logging.info(f'do not notify {author} because of opt out'); continue
+                if utils.isBlockedForInfinity(site, author): logging.info(f'do not notify {author} because he is blocked'); continue
                 userdisk = pywikibot.Page(site, f'Benutzer Diskussion:{author}')
                 if checkForExistingInfoOnDisk(userdisk, allTitles): logging.info(f'do not notify {author} because already notified on userdisk');  continue
                 renderedInfo = infoTemplate(author, pagetitle, titel)
