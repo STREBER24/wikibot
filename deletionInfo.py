@@ -120,7 +120,7 @@ interwikiRegex = re.compile('^[a-z][a-z]>')
 def infoTemplate(username: str, pagetitle: str, deletionDiskTitle: str):
     isIP = bool(re.match(ipRegex, username))
     sectiontitle = pagetitle.replace(' ','_')
-    if pagetitle.startswith(':Vorlage'):
+    if pagetitle.startswith(':Vorlage') or pagetitle.startswith('Vorlage:'):
         return f"""
 == [[{pagetitle}]] ==
 
