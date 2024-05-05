@@ -171,14 +171,19 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
 def alarmOnChange(change: dict):
     def notify(msg: str):
         logging.warning(change)
-        utils.sendTelegram(f'{msg}:\nhttps://de.wikipedia.org/wiki/Spezial:Diff/{change['revision']['old']}')
+        utils.sendTelegram(f'{msg}:\nhttps://de.wikipedia.org/wiki/Spezial:Diff/{change['revision']['new']}')
     if re.match('Bot: Benachrichtigung über Löschdiskussion zum Artikel', change['comment']):
         notify('XqBot aktiv')
         return True
-    if change['user'] == 'TaxonBot' and re.match('^Bot: [1-9] Abschnitt nach [[Benutzer Diskussion:.*]] archiviert – letzte Bearbeitung: [[user:DerIchBot|DerIchBot]] (.*)$', change['comment']):
+    if change['user'] == 'TaxonBot' and re.match('^Bot: [1-9] Abschnitt nach \\[\\[Benutzer Diskussion:.*\\]\\] archiviert – letzte Bearbeitung: \\[\\[user:DerIchBot|DerIchBot\\]\\] \\(.*\\)$', change['comment']):
+        return False
+    if change['user'] == 'DerIchBot':
         return False
     if 'DerIchBot' in change['comment']:
         notify('DerIchBot erwähnt')
+        return True
+    if change['title'] in ['Vorlage:Platinpreis', 'Vorlage:Goldpreis', 'Vorlage:Speedcubing-Rekorddatum', 'Vorlage:Speedcubing-Rekordevent', 'Vorlage:Speedcubing-Rekordhalter', 'Vorlage:Speedcubing-Rekordzeit']:
+        notify('Beobachtete Seite bearbeitet.')
         return True
 
 def monitorRecentChanges():
