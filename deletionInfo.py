@@ -16,14 +16,14 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change
     if wrongKats != '': 
         logging.info('Verschiebe Eintrag von Löschdiskussionsseite nach WikiProjekt Kategorien')
         logging.info(change)
-        utils.sendTelegram(f'Eintrag zu Kategorien auf Löschdiskussionsseite:\n{titel}', silent=True)
         userLink = '???' if change is None else f'[[Benutzer:{change['user']}]]'
         katDiskLink = f'Wikipedia:WikiProjekt Kategorien/Diskussionen/{date[:4]}/{['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'][int(date[5:7])-1]}/{int(date[8:10])}'
         deletionDiskPage.text = rest
-        utils.savePage(deletionDiskPage, f'Verschiebe Beitrag von {userLink} nach [[{katDiskLink}]]', botflag=True)
-        katDiskPage = pywikibot.Page(site, katDiskLink)
-        katDiskPage.text += '\n' + wrongKats
-        utils.savePage(katDiskPage, f'Verschiebe Beitrag von {userLink} aus [[{titel}]]', botflag=True)
+        if utils.savePage(deletionDiskPage, f'Verschiebe Beitrag von {userLink} nach [[{katDiskLink}]]', botflag=True):
+            katDiskPage = pywikibot.Page(site, katDiskLink)
+            katDiskPage.text += '\n' + wrongKats
+            if not utils.savePage(katDiskPage, f'Verschiebe Beitrag von {userLink} aus [[{titel}]]', botflag=True):
+                raise Exception('Incomplete move of discussion from deletion disk to kat-disk')
         return
     parsedDeletionDisk = parseDeletionDisk(deletionDiskPage)
     for pagetitle, userlinks in parsedDeletionDisk.items():
