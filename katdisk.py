@@ -68,8 +68,7 @@ def parseKatDisk(page: pywikibot.Page):
         for link in titellinks:
             if not link.target.startswith(':Kategorie:'): continue
             kattitle = link.target[1:]
-            userlinks = set([':'.join(link.target.split(':')[1:]) for link in sec.wikilinks if re.match('^(Benutzer:|Benutzer Diskussion:)', link.target)]+
-                            [utils.findTemplateArg(template, '1') for template in sec.templates if template.name.strip().lower() == 'ping'])
+            userlinks = utils.extractUserLinks(sec)
             result[kattitle] = userlinks
     return result
 

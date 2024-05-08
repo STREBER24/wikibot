@@ -12,6 +12,7 @@ import json
 import bs4
 import io
 import os
+import re
 
 def getText(tag: bs4.Tag | str | None) -> str:
     if type(tag) is bs4.Tag: 
@@ -105,3 +106,7 @@ def isBlockedForInfinity(site, username: str):
             logging.debug(f'{username} if blocked for infinity')
             return True
     return False
+
+def extractUserLinks(sec: wtp.Section):
+    return set([':'.join(link.target.split(':')[1:]) for link in sec.wikilinks if re.match('^(Benutzer:|Benutzer Diskussion:|BD:|User:)', link.target)]+
+               [findTemplateArg(template, '1') for template in sec.templates if template.name.strip().lower() == 'ping'])

@@ -63,7 +63,7 @@ def parseDeletionDisk(page: pywikibot.Page):
         if len(titellinks) == 0: continue
         pagetitle = titellinks[0].target
         if re.search('\\((erl\\., )?(LAE|LAZ)\\)', sec.title): logging.debug(f'ignore {pagetitle} because LAE'); continue
-        userlinks = set([':'.join(link.target.split(':')[1:]) for link in sec.wikilinks if re.match('^(Benutzer:|Benutzer Diskussion:)', link.target)])
+        userlinks = utils.extractUserLinks(sec)
         result[pagetitle] = userlinks
     return result
 
