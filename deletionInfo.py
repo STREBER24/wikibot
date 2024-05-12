@@ -10,10 +10,11 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change
     assert re.match('^Wikipedia:Löschkandidaten/.', titel)
     date = recentChanges.parseWeirdDateFormats(titel[26:])
     if date is None or date is False or date < '2024-04-06': return
-    logs: dict[str, dict[str,dict]] = utils.loadJson(f'data/deletionInfo/{date}.json', {})
+    logs: dict[str, int|dict[str,dict]] = utils.loadJson(f'data/deletionInfo/{date}.json', {})
     deletionDiskPage = pywikibot.Page(site, titel) 
     wrongKats, rest = katdisk.extractFromDeletionDisk(deletionDiskPage.text)
     if wrongKats != '': 
+        utils.sendTelegram(f'Verschiebe von {titel}')
         logging.info('Verschiebe Eintrag von Löschdiskussionsseite nach WikiProjekt Kategorien')
         logging.info(change)
         userLink = '???' if change is None else f'[[Benutzer:{change['user']}]]'
@@ -62,7 +63,9 @@ def parseDeletionDisk(page: pywikibot.Page):
         titellinks = wtp.parse(sec.title).wikilinks
         if len(titellinks) == 0: continue
         pagetitle = titellinks[0].target
-        if re.search('\\((erl\\., )?(LAE|LAZ)\\)', sec.title): logging.debug(f'ignore {pagetitle} because LAE'); continue
+        if re.search('\\((erl\\., )?(LAE|LAZ)\\)', sec.title): logging.debug(f'ignore {pagetitle} because LAE/LAZ'); continue
+        if re.search('\\((erl\\., )?SLA\\)', sec.title): logging.debug(f'ignore {pagetitle} because SLA'); continue
+        if re.search('\\((bleibt|gelöscht)\\)', sec.title): logging.debug(f'ignore {pagetitle} because ended'); continue
         userlinks = utils.extractUserLinks(sec)
         result[pagetitle] = userlinks
     return result
