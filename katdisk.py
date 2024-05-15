@@ -14,7 +14,7 @@ def extractFromDeletionDisk(content: str) -> tuple[str,str]: # (Kategorien, Rest
     for sec in parsed.sections:
         if sec.level == 1 and (sec.title or '').strip() == 'Benutzerseiten': ok = True; break
         if sec.title != None:
-            result += '\n' + sec.level*'=' + ' ' + sec.title + ' ' + sec.level*'=' + '\n' + sec.contents
+            result += '\n' + sec.level*'=' + ' ' + sec.title + ' ' + sec.level*'=' + '\n\n' + sec.contents
             del sec.title
             sec.contents = ''
         else:
@@ -46,7 +46,7 @@ def handleKatDiscussionUpdate(site: pywikibot._BaseSite, titel: str):
         logstate = logs.get(kattitle)
         if logstate == None: 
             logs[kattitle] = int(time.time())
-        elif isinstance(logstate, int) and logstate+NOTIFICATION_DELAY > time.time():
+        elif isinstance(logstate, int) and logstate+NOTIFICATION_DELAY < time.time():
             logs[kattitle] = False
         else:
             continue
@@ -59,8 +59,8 @@ def handleKatDiscussionUpdate(site: pywikibot._BaseSite, titel: str):
         if outstandingNotifications[int(logs[kattitle]==False)].get(creator) == None: outstandingNotifications[int(logs[kattitle]==False)][creator] = []
         outstandingNotifications[int(logs[kattitle]==False)][creator].append(kattitle)
     for creator in outstandingNotifications[1]:
-        kattitles = outstandingNotifications[1][creator] + (outstandingNotifications[0][creator] or [])
-        if notify(creator, kattitles, titel):
+        kattitles = outstandingNotifications[1][creator] + (outstandingNotifications[0].get(creator) or [])
+        if notify(site, creator, kattitles, titel):
             for kat in kattitles:
                 logs[kat] = creator
     utils.dumpJson(f'data/katDiskInfo/{date}.json', logs)
@@ -73,11 +73,11 @@ def handleKatDiscussionToday():
     handleKatDiscussionUpdate(site, diskTitle)
 
 
-def notify(creator: str, kattitles: list[str], diskTitle: str):
+def notify(site, creator: str, kattitles: list[str], diskTitle: str):
     userdisk = pywikibot.Page(site, f'Benutzer Diskussion:{creator}')
     renderedInfo = infoTemplate(creator, kattitles, diskTitle)
     userdisk.text += renderedInfo
-    if utils.savePage(userdisk, f'Informiere über Diskussion zu [[:{' und '.join(kattitles)}]].', botflag=False):
+    if utils.savePage(userdisk, f'Informiere über Diskussion zu {' und '.join([f'[[:{i}]]' for i in kattitles])}.', botflag=False):
         logging.info(f'Notify {creator} about kat-disk of {' and '.join(kattitles)}')
         return True
     logging.info(f'do not notify {creator} because saving failed')
@@ -116,7 +116,7 @@ def infoTemplate(username: str, kattitles: list[str], diskTitle: str):
 
 Hallo{'' if isIP else ' '+username},
 
-zu {len(kattitles) if len(kattitles)>1 else 'der im Betreff genannten und'} von dir erstellte{'' if len(kattitles)>1 else 'n'} Kategorie{'n' if len(kattitles)>1 else ''} wurde auf [[{diskTitle}]] eine Diskussion begonnen. Du bist herzlich eingeladen, dich an der Diskussion zu beteiligen.
+zu {len(kattitles) if len(kattitles)>1 else 'der im Betreff genannten und'} von dir erstellten Kategorie{'n' if len(kattitles)>1 else ''} wurde auf [[{diskTitle}]] eine Diskussion begonnen. Du bist herzlich eingeladen, dich an der Diskussion zu beteiligen.
 
 Ich bin übrigens nur ein [[WP:Bots|Bot]]. Wenn ich nicht richtig funktioniere, sag bitte [[Benutzer Diskussion:DerIch27|DerIch27]] bescheid. Wenn du nicht mehr von mir benachrichtigt werden möchtest, kannst du deine Benutzerdiskussionsseite auf [[Benutzer:DerIchBot/Opt-Out Liste|dieser Liste]] eintragen.
 
