@@ -19,7 +19,7 @@ if __name__ == '__main__':
         edelmetalle.run()
     
         print('\n======== OPT-OUT ========')
-        optOut.download()
+        optOut.downloadAll()
         
         print('\n======== WARTUNGSLISTE ========')
         recentChanges.checkPagesInProblemList()

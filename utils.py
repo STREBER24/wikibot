@@ -108,5 +108,5 @@ def isBlockedForInfinity(site, username: str):
     return False
 
 def extractUserLinks(sec: wtp.Section):
-    return set([':'.join(link.target.split(':')[1:]) for link in sec.wikilinks if re.match('^(Benutzer:|Benutzer Diskussion:|BD:|User:)', link.target)]+
+    return set([':'.join(link.target.split(':')[1:]) for link in sec.wikilinks if re.match('^(benutzer|benutzer diskussion|bd|user|user talk):', link.target.lower())]+
                [findTemplateArg(template, '1') for template in sec.templates if template.name.strip().lower() == 'ping'])
