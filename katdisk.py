@@ -66,8 +66,7 @@ def handleKatDiscussionUpdate(site: pywikibot._BaseSite, titel: str):
     utils.dumpJson(f'data/katDiskInfo/{date}.json', logs)
 
 
-def handleKatDiscussionToday():
-    site = pywikibot.Site('de', 'wikipedia')
+def handleKatDiscussionToday(site):
     date = time.localtime()
     diskTitle = f'Wikipedia:WikiProjekt Kategorien/Diskussionen/{date.tm_year}/{['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'][date.tm_mon-1]}/{date.tm_mday}'
     handleKatDiscussionUpdate(site, diskTitle)

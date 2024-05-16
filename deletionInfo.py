@@ -1,3 +1,5 @@
+from datetime import datetime
+import time
 import wikitextparser as wtp
 import recentChanges
 import pywikibot
@@ -11,7 +13,7 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change
     assert re.match('^Wikipedia:Löschkandidaten/.', titel)
     date = recentChanges.parseWeirdDateFormats(titel[26:])
     if date is None or date is False or date < '2024-04-06': return
-    logs: dict[str, int|dict[str,dict]] = utils.loadJson(f'data/deletionInfo/{date}.json', {})
+    logs: dict[str, dict[str,dict]] = utils.loadJson(f'data/deletionInfo/{date}.json', {})
     deletionDiskPage = pywikibot.Page(site, titel) 
     wrongKats, rest = katdisk.extractFromDeletionDisk(deletionDiskPage.text)
     if wrongKats != '': 
@@ -40,20 +42,43 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change
                 if author in userlinks: logging.info(f'do not notify {author} because already on deletion disk'); continue
                 if author in utils.loadJson('data/opt-out-ld.json', []): logging.info(f'do not notify {author} because of opt out'); continue
                 if utils.isBlockedForInfinity(site, author): logging.info(f'do not notify {author} because he is blocked'); continue
-                userdisk = pywikibot.Page(site, f'Benutzer Diskussion:{author}')
-                if checkForExistingInfoOnDisk(userdisk, allTitles): logging.info(f'do not notify {author} because already notified on userdisk');  continue
-                renderedInfo = infoTemplate(author, pagetitle, titel)
-                userdisk.text += renderedInfo
-                if utils.savePage(userdisk, f'Informiere über Löschantrag zu [[{pagetitle}]].', botflag=False):
-                    mainAuthors[author]['notified'] = True
-                    logging.info(f'Notify {author} about deletion disk of {pagetitle}')
-                else:
-                    logging.info(f'do not notify {author} because saving failed')
+                mainAuthors[author]['notified'] = int(time.time())
+                logging.info(f'planned notification of {author}')
             logs[pagetitle] = dict(sortMainAuthors(mainAuthors)[-5:])
             utils.dumpJson(f'data/deletionInfo/{date}.json', logs)
         except Exception as e:
             e.add_note(f'failed while checking page {pagetitle} on deletion disk')
             raise e
+    sendDeletionNotifications(site)
+
+NOTIFICATION_DELAY = 60*15 # 15min
+def sendDeletionNotifications(site):
+    date = datetime.now().strftime('%Y-%m-%d')
+    logs: dict[str, dict[str,dict]] = utils.loadJson(f'data/deletionInfo/{date}.json', {})
+    deletionDiskTitle = 'Wikipedia:Löschkandidaten/' + utils.formatDate(int(date[8:10]), date[5:7], date[0:4])
+    deletionDiskPage = pywikibot.Page(site, deletionDiskTitle)
+    parsedDeletionDisk = parseDeletionDisk(deletionDiskPage)
+    for pagetitle, mainAuthors in logs.items():
+        for author in mainAuthors:
+            if type(mainAuthors[author].get('notified')) is not int: continue
+            if mainAuthors[author]['notified'] + NOTIFICATION_DELAY > time.time():
+                logging.info(f'wait with notification of {author}')
+            userdisk = pywikibot.Page(site, f'Benutzer Diskussion:{author}')
+            allTitles, mainAuthors = parseRevisionHistory(pywikibot.Page(site, pagetitle))
+            if checkForExistingInfoOnDisk(userdisk, allTitles): 
+                logging.info(f'do not notify {author} because already notified on userdisk')
+                logs[pagetitle][author]['notified'] = False 
+                continue
+            renderedInfo = infoTemplate(author, pagetitle, deletionDiskTitle)
+            userdisk.text += renderedInfo
+            if utils.savePage(userdisk, f'Informiere über Löschantrag zu [[{pagetitle}]].', botflag=False):
+                mainAuthors[author]['notified'] = True
+                logging.info(f'Notify {author} about deletion disk of {pagetitle}')
+            else:
+                logging.info(f'do not notify {author} because saving failed')
+                logs[pagetitle][author]['notified'] = False 
+    utils.dumpJson(f'data/deletionInfo/{date}.json', logs)
+
 
 def parseDeletionDisk(page: pywikibot.Page):
     result: dict[str,set[str]] = {} # {pagetitle: userlinks}
@@ -66,7 +91,7 @@ def parseDeletionDisk(page: pywikibot.Page):
         pagetitle = titellinks[0].target
         if re.search('\\((erl\\., )?(LAE|LAZ)\\)', sec.title): logging.debug(f'ignore {pagetitle} because LAE/LAZ'); continue
         if re.search('\\((erl\\., )?SLA\\)', sec.title): logging.debug(f'ignore {pagetitle} because SLA'); continue
-        if re.search('\\((bleibt|gelöscht)\\)', sec.title): logging.debug(f'ignore {pagetitle} because ended'); continue
+        if re.search('\\((bleibt|gelöscht|erl.)\\)', sec.title): logging.debug(f'ignore {pagetitle} because ended'); continue
         userlinks = utils.extractUserLinks(sec)
         result[pagetitle] = userlinks
     return result

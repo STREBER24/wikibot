@@ -1,3 +1,5 @@
+import deletionInfo
+import pywikibot
 import telegram
 import logging
 import katdisk
@@ -7,7 +9,9 @@ if __name__ == '__main__':
         logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
         logging.info(f'start hourly routine')
         
-        katdisk.handleKatDiscussionToday()
+        site = pywikibot.Site('de', 'wikipedia')
+        katdisk.handleKatDiscussionToday(site)
+        deletionInfo.sendDeletionNotifications(site)
         
         logging.info(f'finished hourly routine')
     
