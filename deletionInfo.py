@@ -57,12 +57,24 @@ def sendDeletionNotifications(site):
     logs: dict[str, dict[str,dict]] = utils.loadJson(f'data/deletionInfo/{date}.json', {})
     deletionDiskTitle = 'Wikipedia:Löschkandidaten/' + utils.formatDate(int(date[8:10]), date[5:7], date[0:4])
     deletionDiskPage = pywikibot.Page(site, deletionDiskTitle)
-    parsedDeletionDisk = parseDeletionDisk(deletionDiskPage)
+    parsedDeletionDisk: None|dict[str,dict] = None
     for pagetitle, mainAuthors in logs.items():
         for author in mainAuthors:
             if type(mainAuthors[author].get('notified')) is not int: continue
             if mainAuthors[author]['notified'] + NOTIFICATION_DELAY > time.time():
                 logging.info(f'wait with notification of {author}')
+                continue
+            if parsedDeletionDisk is None:
+                parsedDeletionDisk = parseDeletionDisk(deletionDiskPage)
+            assert parsedDeletionDisk is not None
+            if pagetitle not in parsedDeletionDisk.keys():
+                logging.warning(f'do not notify {author} because {pagetitle} not found anymore')
+                mainAuthors[author]['notified'] = False
+                continue
+            if author in parsedDeletionDisk[pagetitle]:
+                logging.info(f'do not notify {author} because already on deletion disk')
+                mainAuthors[author]['notified'] = False
+                continue
             userdisk = pywikibot.Page(site, f'Benutzer Diskussion:{author}')
             allTitles, mainAuthors = parseRevisionHistory(pywikibot.Page(site, pagetitle))
             if checkForExistingInfoOnDisk(userdisk, allTitles): 
@@ -71,12 +83,12 @@ def sendDeletionNotifications(site):
                 continue
             renderedInfo = infoTemplate(author, pagetitle, deletionDiskTitle)
             userdisk.text += renderedInfo
-            if utils.savePage(userdisk, f'Informiere über Löschantrag zu [[{pagetitle}]].', botflag=False):
-                mainAuthors[author]['notified'] = True
-                logging.info(f'Notify {author} about deletion disk of {pagetitle}')
-            else:
+            if not utils.savePage(userdisk, f'Informiere über Löschantrag zu [[{pagetitle}]].', botflag=False):
                 logging.info(f'do not notify {author} because saving failed')
                 logs[pagetitle][author]['notified'] = False 
+                continue
+            mainAuthors[author]['notified'] = True
+            logging.info(f'Notify {author} about deletion disk of {pagetitle}')
     utils.dumpJson(f'data/deletionInfo/{date}.json', logs)
 
 
