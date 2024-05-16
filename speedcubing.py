@@ -1,4 +1,5 @@
 import pywikibot
+import telegram
 import requests
 import typing
 import optOut
@@ -41,7 +42,7 @@ def editWiki(data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]],
     site = pywikibot.Site('de', 'wikipedia')
     page = pywikibot.Page(site, pagename)
     if page.latest_revision["user"] != 'DerIchBot':
-        utils.sendTelegram(f'Warnung: {pagename} zuletzt von {page.latest_revision["user"]} bearbeitet.')
+        telegram.send(f'Warnung: {pagename} zuletzt von {page.latest_revision["user"]} bearbeitet.')
     newText = generatePage(data, parser)
     if newText != page.text:
         print('Update page ...')

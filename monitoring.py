@@ -1,4 +1,5 @@
 from datetime import datetime
+import telegram
 import psutil
 import utils
 import csv
@@ -27,7 +28,7 @@ def run():
     stats = getStats()
     saveStats(stats)
     if badStats(stats):
-        utils.sendTelegram(f'Monitoring Warning:\n{formatStats(stats)}', silent=True)
+        telegram.send(f'Monitoring Warning:\n{formatStats(stats)}', silent=True)
 
 if __name__ == '__main__':
     run()

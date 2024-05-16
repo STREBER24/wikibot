@@ -1,5 +1,6 @@
 import wikitextparser as wtp
 import pywikibot
+import telegram
 import requests
 import optOut
 import utils
@@ -27,7 +28,7 @@ def update(template: str, apiNames: tuple[str, str], displayNames: tuple[str, st
         print('skip update')
         return False
     if page.latest_revision['user'] != 'DerIchBot':
-        utils.sendTelegram(f'Warnung: Vorlage:{template} zuletzt von {page.latest_revision['user']} bearbeitet.')
+        telegram.send(f'Warnung: Vorlage:{template} zuletzt von {page.latest_revision['user']} bearbeitet.')
         return False
     noinclude = wtp.parse(page.text).get_tags()[1]
     assert noinclude.name == 'noinclude'

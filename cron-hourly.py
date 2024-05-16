@@ -1,7 +1,6 @@
-import traceback
+import telegram
 import logging
 import katdisk
-import utils
 
 if __name__ == '__main__':
     try:
@@ -13,6 +12,4 @@ if __name__ == '__main__':
         logging.info(f'finished hourly routine')
     
     except Exception:
-        logging.error(traceback.format_exc())
-        utils.sendTelegram(traceback.format_exc())
-        
+        telegram.handleException()

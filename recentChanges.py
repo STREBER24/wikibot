@@ -5,6 +5,7 @@ import wikitextparser as wtp
 import deletionInfo
 import pywikibot
 import traceback
+import telegram
 import logging
 import katdisk
 import optOut
@@ -159,7 +160,7 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
         e.add_note(f'failed while checking page {pagetitle}')
         if previousServerErrors <= 4:
             logging.warning(f'WARNING: Ignored Server Error\n{traceback.format_exc()}')
-            utils.sendTelegram('WARNING: Ignored Server Error')
+            telegram.send('WARNING: Ignored Server Error')
             return checkPage(site, pagetitle, allProblems, previousServerErrors+1)
         else:
             e.add_note(f'failed after {previousServerErrors+1} server errors')
@@ -167,24 +168,6 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
     except Exception as e:
         e.add_note(f'failed while checking page {pagetitle}')
         raise e
-
-def alarmOnChange(change: dict):
-    def notify(msg: str):
-        logging.warning(change)
-        utils.sendTelegram(f'{msg}:\nhttps://de.wikipedia.org/wiki/Spezial:Diff/{change['revision']['new']}')
-    if re.match('Bot: Benachrichtigung über Löschdiskussion zum Artikel', change['comment']):
-        notify('XqBot aktiv')
-        return True
-    if change['user'] == 'TaxonBot' and re.match('^Bot: [1-9] Abschnitt nach \\[\\[Benutzer Diskussion:.*\\]\\] archiviert – letzte Bearbeitung: \\[\\[user:DerIchBot|DerIchBot\\]\\] \\(.*\\)$', change['comment']):
-        return False
-    if change['user'] == 'DerIchBot':
-        return False
-    if 'DerIchBot' in change['comment']:
-        notify('DerIchBot erwähnt')
-        return True
-    if change['title'] in ['Vorlage:Platinpreis', 'Vorlage:Goldpreis', 'Vorlage:Speedcubing-Rekorddatum', 'Vorlage:Speedcubing-Rekordevent', 'Vorlage:Speedcubing-Rekordhalter', 'Vorlage:Speedcubing-Rekordzeit']:
-        notify('Beobachtete Seite bearbeitet.')
-        return True
 
 def monitorRecentChanges():
     allProblems = loadAllProblems()
@@ -197,7 +180,7 @@ def monitorRecentChanges():
     while True:
         try:
             change = next(stream)
-            alarmOnChange(change)
+            telegram.alarmOnChange(change)
             if change['namespace'] == 4: # Wikipedia:XYZ
                 if re.match('^Wikipedia:Löschkandidaten/.', change['title']):
                     deletionInfo.handleDeletionDiscussionUpdate(site, change['title'], change)
@@ -243,7 +226,7 @@ def checkPagesInProblemList():
             previousServerErrors += 1
             if previousServerErrors <= 4:
                 logging.warning(f'WARNING: Ignored Server Error\n{traceback.format_exc()}')
-                utils.sendTelegram('WARNING: Ignored Server Error')
+                telegram.send('WARNING: Ignored Server Error')
                 continue
             else:
                 e.add_note(f'failed after {previousServerErrors+1} server errors')
@@ -287,12 +270,11 @@ def run():
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
-    utils.sendTelegram('start recent changes service ...', silent=True)
+    telegram.send('start recent changes service ...', silent=True)
     try:
         monitorRecentChanges()
     except KeyboardInterrupt:
         print('Exception: KeyboardInterrupt')
     except Exception as e:
-        logging.error(traceback.format_exc())
-        utils.sendTelegram('Mimimi, du hast mich nicht gut programmiert, deshalb stürze ich jetzt ab:\n\n' + traceback.format_exc())
+        telegram.handleException()
             

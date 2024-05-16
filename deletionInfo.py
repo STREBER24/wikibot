@@ -1,6 +1,7 @@
 import wikitextparser as wtp
 import recentChanges
 import pywikibot
+import telegram
 import logging
 import katdisk
 import utils
@@ -14,7 +15,7 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change
     deletionDiskPage = pywikibot.Page(site, titel) 
     wrongKats, rest = katdisk.extractFromDeletionDisk(deletionDiskPage.text)
     if wrongKats != '': 
-        utils.sendTelegram(f'Verschiebe von {titel}')
+        telegram.send(f'Verschiebe von {titel}')
         logging.info('Verschiebe Eintrag von Löschdiskussionsseite nach WikiProjekt Kategorien')
         logging.info(change)
         userLink = '???' if change is None else f'[[Benutzer:{change['user']}]]'

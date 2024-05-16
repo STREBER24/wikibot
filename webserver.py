@@ -1,5 +1,6 @@
 import recentChanges
 import traceback
+import telegram
 import optOut
 import utils
 import flask
@@ -41,7 +42,7 @@ def number_of_problems():
 @app.errorhandler(500)
 def exception_handler(error):
     app.logger.error(f'STATUS 500\n\n{traceback.format_exc()}')
-    utils.sendTelegram(f'{traceback.format_exc()}')
+    telegram.handleException()
     return "Unerwarteter interner Fehler aufgetreten. Der Betreiber wurde bereits benachrichtigt.", 500
 
 if __name__=='__main__': 

@@ -2,15 +2,14 @@ from datetime import datetime
 import recentChanges
 import speedcubing
 import edelmetalle
-import traceback
+import telegram
 import logging
 import optOut
-import utils
 
 if __name__ == '__main__':
     try:
         logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
-        utils.sendTelegram('Start daily routine ...', silent=True)
+        telegram.send('Start daily routine ...', silent=True)
         
         print('\n======== SPEEDCUBING ========')
         speedcubing.run()
@@ -28,5 +27,5 @@ if __name__ == '__main__':
     
     except Exception:
         print('[FAILED]')
-        utils.sendTelegram(traceback.format_exc())
+        telegram.handleException()
         
