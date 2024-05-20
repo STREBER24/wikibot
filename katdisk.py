@@ -49,8 +49,9 @@ def handleKatDiscussionUpdate(site: pywikibot._BaseSite, titel: str):
         elif (type(logstate) == int) and logstate+NOTIFICATION_DELAY < time.time():
             logs[kattitle] = False
         else:
+            logging.debug(f'skip {kattitle} because already handled with logstate {logstate}')
             continue
-        logging.info(f'Check category {kattitle} on category disk ...')
+        logging.info(f'Check category {kattitle} on category disk {date} ... (logstate: {logstate})')
         creator = getPageCreator(pywikibot.Page(site, kattitle))
         if creator is None: logging.info(f'no creator of {kattitle} found'); continue
         if re.match(ipRegex, creator): logging.info(f'do not notify {creator} because he is ip'); continue
@@ -122,5 +123,6 @@ Ich bin übrigens nur ein [[WP:Bots|Bot]]. Wenn ich nicht richtig funktioniere, 
 Freundliche Grüsse  --~~~~"""
 
 if __name__ == '__main__':
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - DEBUGGING - %(message)s', level=logging.DEBUG)
     site = pywikibot.Site('de', 'wikipedia')
     handleKatDiscussionToday(site)

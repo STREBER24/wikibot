@@ -6,7 +6,7 @@ import katdisk
 
 if __name__ == '__main__':
     try:
-        logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+        logging.basicConfig(format='%(asctime)s - %(levelname)s - HOURLY - %(message)s', level=logging.INFO)
         logging.info(f'start hourly routine')
         
         site = pywikibot.Site('de', 'wikipedia')

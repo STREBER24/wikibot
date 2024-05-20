@@ -8,7 +8,7 @@ import optOut
 
 if __name__ == '__main__':
     try:
-        logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+        logging.basicConfig(format='%(asctime)s - %(levelname)s - DAILY - %(message)s', level=logging.INFO)
         telegram.send('Start daily routine ...', silent=True)
         
         print('\n======== SPEEDCUBING ========')

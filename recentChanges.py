@@ -159,7 +159,7 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
     except pywikibot.exceptions.ServerError as e:
         e.add_note(f'failed while checking page {pagetitle}')
         if previousServerErrors <= 4:
-            logging.warning(f'WARNING: Ignored Server Error\n{traceback.format_exc()}')
+            logging.warning(f'Ignored Server Error\n{traceback.format_exc()}')
             telegram.send('WARNING: Ignored Server Error')
             return checkPage(site, pagetitle, allProblems, previousServerErrors+1)
         else:
@@ -225,7 +225,7 @@ def checkPagesInProblemList():
         except pywikibot.exceptions.ServerError as e:
             previousServerErrors += 1
             if previousServerErrors <= 4:
-                logging.warning(f'WARNING: Ignored Server Error\n{traceback.format_exc()}')
+                logging.warning(f'Ignored Server Error\n{traceback.format_exc()}')
                 telegram.send('WARNING: Ignored Server Error')
                 continue
             else:
@@ -269,7 +269,7 @@ def run():
     monitorRecentChanges()
 
 if __name__ == '__main__':
-    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - RECENT CHANGES - %(message)s', level=logging.INFO)
     telegram.send('start recent changes service ...', silent=True)
     try:
         monitorRecentChanges()

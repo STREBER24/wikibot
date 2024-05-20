@@ -95,7 +95,7 @@ def savePage(page: pywikibot.Page, summary: str, botflag: bool):
 def isBlockedForInfinity(site, username: str):
     for i in site.blocks(total=1, reverse=True, users=username):
         if i.get('expiry') == 'infinity':
-            logging.debug(f'{username} if blocked for infinity')
+            logging.debug(f'{username} is blocked for infinity')
             return True
     return False
 

@@ -33,7 +33,7 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change
     for pagetitle, userlinks in parsedDeletionDisk.items():
         try:
             if logs.get(pagetitle) != None: continue
-            logging.info(f'Check page {pagetitle} on deletion disk ...')
+            logging.info(f'Check page {pagetitle} on deletion disk {date} ...')
             allTitles, mainAuthors = parseRevisionHistory(pywikibot.Page(site, pagetitle))
             if any([logs.get(i)!=None for i in allTitles]): continue
             for author in mainAuthors:
@@ -83,7 +83,8 @@ def sendDeletionNotifications(site):
                 continue
             renderedInfo = infoTemplate(author, pagetitle, deletionDiskTitle)
             userdisk.text += renderedInfo
-            if not utils.savePage(userdisk, f'Informiere über Löschantrag zu [[{pagetitle}]].', botflag=False):
+            delay = time.time() - logs[pagetitle][author]['notified']
+            if not utils.savePage(userdisk, f'Informiere über Löschantrag zu [[{pagetitle}]]. (Verzögerung: {int(delay/60)}min)', botflag=False):
                 logging.info(f'do not notify {author} because saving failed')
                 logs[pagetitle][author]['notified'] = False 
                 continue
@@ -197,7 +198,7 @@ Freundliche Grüsse  --~~~~"""
 
 Hallo{'' if isIP else ' '+username},
 
-gegen den im Betreff genannten, von dir angelegten oder erheblich bearbeiteten Artikel wurde ein Löschantrag gestellt (nicht von mir). Bitte entnimm den Grund dafür der '''[[{deletionDiskTitle}#{sectiontitle}|Löschdiskussion]]'''. Ob der Artikel tatsächlich gelöscht wird, wird sich gemäß unserer [[WP:Löschregeln|Löschregeln]] im Laufe der siebentägigen Löschdiskussion entscheiden. 
+gegen den im Betreff genannten, von dir angelegten oder erheblich bearbeiteten Artikel wurde ein Löschantrag gestellt (nicht von mir). Bitte entnimm den Grund dafür der '''[[{deletionDiskTitle}#{sectiontitle}|Löschdiskussion]]'''. Ob der Artikel tatsächlich gelöscht wird, wird sich gemäß unserer [[WP:Löschregeln|Löschregeln]] im Laufe der siebentägigen Löschdiskussion entscheiden. In [[Wikipedia:Schnelllöschantrag#Artikellöschungen|den hier nachzulesenden Fällen]] kann eine Seite auch sofort gelöscht werden.
 
 Du bist herzlich eingeladen, dich an der [[{deletionDiskTitle}#{pagetitle.replace(' ','_')}|Löschdiskussion]] zu beteiligen. Wenn du möchtest, dass der Artikel behalten wird, kannst du dort die Argumente, die für eine Löschung sprechen, entkräften, indem du dich beispielsweise zur [[Wikipedia:Relevanzkriterien|enzyklopädischen Relevanz]] des Artikels äußerst. Du kannst auch während der Löschdiskussion Artikelverbesserungen vornehmen, die die Relevanz besser erkennen lassen und die [[Wikipedia:Artikel#Mindestanforderungen|Mindestqualität]] sichern.
 
