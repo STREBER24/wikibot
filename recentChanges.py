@@ -11,6 +11,7 @@ import katdisk
 import optOut
 import utils
 import pytz
+import time
 import re
 
 parseMonthDict = {'Januar':1, 'Jänner':1, 'January':1, 'Jan':1,
@@ -169,6 +170,26 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
         e.add_note(f'failed while checking page {pagetitle}')
         raise e
 
+class LagMonitor:
+    def __init__(self):
+        self.lastLagNotification: float = 0
+        self.numberOfDelayedChanges = 0
+        self.maxLag = 0
+        self.minLag = 9999999999999999
+    def checkRevision(self, change: dict):
+        lag = int(time.time() - change['timestamp'])
+        if lag > self.maxLag: self.maxLag = lag
+        if lag < self.minLag: self.minLag = lag
+        if lag > 60:
+            logging.warning(f'Handled revision {change.get('revision')} with delay of {lag}s')
+            self.numberOfDelayedChanges += 1
+            if time.time() - self.lastLagNotification > 600:
+                telegram.send(f'LAG WARNING\nminimum: {self.minLag//60} min, {self.minLag%60} s\nmaximum: {self.maxLag//60} min, {self.maxLag%60} s\n{self.numberOfDelayedChanges+1} delayed changes since last notification')
+                self.numberOfDelayedChanges = 0
+                self.lastLagNotification = time.time()
+                self.maxLag = 0
+                self.minLag = 9999999999999999
+
 def monitorRecentChanges():
     allProblems = loadAllProblems()
     site = pywikibot.Site('de', 'wikipedia')
@@ -177,9 +198,12 @@ def monitorRecentChanges():
     stream.register_filter(type='edit', wiki='dewiki')
     numberOfChanges = 0
     numberOfProblemsBefore = len(allProblems)
+    lagMonitor = LagMonitor()
     while True:
         try:
             change = next(stream)
+            logging.debug(f'handle recent change {change.get('revision')} on {change.get('titel')}')
+            lagMonitor.checkRevision(change['timestamp'])
             telegram.alarmOnChange(change)
             if change['namespace'] == 4: # Wikipedia:XYZ
                 if re.match('^Wikipedia:Löschkandidaten/.', change['title']):
@@ -201,7 +225,7 @@ def monitorRecentChanges():
                         numberOfProblemsBefore = len(allProblems)
                         numberOfChanges = 0
         except Exception as e:
-            e.add_note(f'failed while handling recent change {change.get('revision')}')
+            e.add_note(f'failed while handling recent change {change.get('revision')} on {change.get('titel')}')
             raise e
 
 def checkPagesInProblemList():
