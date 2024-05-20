@@ -183,12 +183,12 @@ class LagMonitor:
         if lag > 60:
             logging.warning(f'Handled revision {change.get('revision')} with delay of {lag}s')
             self.numberOfDelayedChanges += 1
-            if time.time() - self.lastLagNotification > 600:
-                telegram.send(f'LAG WARNING\nminimum: {self.minLag//60} min, {self.minLag%60} s\nmaximum: {self.maxLag//60} min, {self.maxLag%60} s\n{self.numberOfDelayedChanges+1} delayed changes since last notification')
-                self.numberOfDelayedChanges = 0
-                self.lastLagNotification = time.time()
-                self.maxLag = 0
-                self.minLag = 9999999999999999
+        if (self.maxLag > 60) and (time.time() - self.lastLagNotification > 600):
+            telegram.send(f'LAG WARNING\nminimum: {self.minLag//60} min, {self.minLag%60} s\nmaximum: {self.maxLag//60} min, {self.maxLag%60} s\n{self.numberOfDelayedChanges} delayed changes since last notification')
+            self.numberOfDelayedChanges = 0
+            self.lastLagNotification = time.time()
+            self.maxLag = 0
+            self.minLag = 9999999999999999
 
 def monitorRecentChanges():
     allProblems = loadAllProblems()
@@ -202,8 +202,8 @@ def monitorRecentChanges():
     while True:
         try:
             change = next(stream)
-            logging.debug(f'handle recent change {change.get('revision')} on {change.get('titel')}')
-            lagMonitor.checkRevision(change['timestamp'])
+            logging.debug(f'handle recent change {change.get('revision')} on {change.get('title')}')
+            lagMonitor.checkRevision(change)
             telegram.alarmOnChange(change)
             if change['namespace'] == 4: # Wikipedia:XYZ
                 if re.match('^Wikipedia:Löschkandidaten/.', change['title']):
@@ -225,7 +225,7 @@ def monitorRecentChanges():
                         numberOfProblemsBefore = len(allProblems)
                         numberOfChanges = 0
         except Exception as e:
-            e.add_note(f'failed while handling recent change {change.get('revision')} on {change.get('titel')}')
+            e.add_note(f'failed while handling recent change {change.get('revision')} on {change.get('title')}')
             raise e
 
 def checkPagesInProblemList():
