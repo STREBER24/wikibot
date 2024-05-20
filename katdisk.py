@@ -46,7 +46,7 @@ def handleKatDiscussionUpdate(site: pywikibot._BaseSite, titel: str):
         logstate = logs.get(kattitle)
         if logstate == None: 
             logs[kattitle] = int(time.time())
-        elif isinstance(logstate, int) and logstate+NOTIFICATION_DELAY < time.time():
+        elif (type(logstate) == int) and logstate+NOTIFICATION_DELAY < time.time():
             logs[kattitle] = False
         else:
             continue
@@ -123,4 +123,4 @@ Freundliche Grüsse  --~~~~"""
 
 if __name__ == '__main__':
     site = pywikibot.Site('de', 'wikipedia')
-    print(handleKatDiscussionUpdate(site, 'Wikipedia:WikiProjekt Kategorien/Diskussionen/2024/April/18'))
+    handleKatDiscussionToday(site)
