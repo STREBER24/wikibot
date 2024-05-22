@@ -170,21 +170,24 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
         e.add_note(f'failed while checking page {pagetitle}')
         raise e
 
+DELAY_THRESHOLD = 300 # 5min
 class LagMonitor:
     def __init__(self):
         self.lastLagNotification: float = 0
         self.numberOfDelayedChanges = 0
         self.maxLag = 0
         self.minLag = 9999999999999999
+        self.firstLag: float = 0
     def checkRevision(self, change: dict):
         lag = int(time.time() - change['timestamp'])
+        if lag > DELAY_THRESHOLD and self.maxLag <= DELAY_THRESHOLD: self.firstLag = time.time()
         if lag > self.maxLag: self.maxLag = lag
         if lag < self.minLag: self.minLag = lag
-        if lag > 60:
+        if lag > DELAY_THRESHOLD:
             logging.warning(f'Handled revision {change.get('revision')} with delay of {lag}s')
             self.numberOfDelayedChanges += 1
-        if (self.maxLag > 60) and (time.time() - self.lastLagNotification > 600):
-            telegram.send(f'LAG WARNING\nminimum: {self.minLag//60} min, {self.minLag%60} s\nmaximum: {self.maxLag//60} min, {self.maxLag%60} s\n{self.numberOfDelayedChanges} delayed changes since last notification')
+        if (self.maxLag > DELAY_THRESHOLD) and (time.time() - self.lastLagNotification > 600) and (time.time() - self.firstLag > 300):
+            telegram.send(f'LAG WARNING\nminimum: {self.minLag//60} min, {self.minLag%60} s\nmaximum: {self.maxLag//60} min, {self.maxLag%60} s\n{self.numberOfDelayedChanges} delayed changes since last notification', silent=True)
             self.numberOfDelayedChanges = 0
             self.lastLagNotification = time.time()
             self.maxLag = 0
