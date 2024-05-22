@@ -81,6 +81,10 @@ def sendDeletionNotifications(site):
                 logging.info(f'do not notify {author} because already notified on userdisk')
                 logs[pagetitle][author]['notified'] = False 
                 continue
+            if not pywikibot.Page(site, pagetitle).exists(): 
+                logging.info(f'do not notify {author} because article has been deleted')
+                logs[pagetitle][author]['notified'] = False 
+                continue
             renderedInfo = infoTemplate(author, pagetitle, deletionDiskTitle)
             userdisk.text += renderedInfo
             delay = time.time() - logs[pagetitle][author]['notified']
@@ -150,6 +154,7 @@ def checkForExistingInfoOnDisk(disk: pywikibot.Page, pagetitles: set[str]):
             for sec in parsed.sections:
                 if sec.title is None: continue
                 if (pagetitle not in sec.title) and (wtp.parse(pagetitle).plain_text() not in sec.title): continue
+                if sec.title.startswith(' Hinweis zur Löschung der Seite') and ('Beste Grüße vom --[[Benutzer:TabellenBot|TabellenBot]] • [[Benutzer Diskussion:Kuebi|Diskussion]]' in sec.contents): continue
                 if 'lösch' in sec.contents.lower(): return True
         return False
     except pywikibot.exceptions.InvalidTitleError:
