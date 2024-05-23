@@ -1,5 +1,4 @@
 from datetime import datetime
-import time
 import wikitextparser as wtp
 import recentChanges
 import pywikibot
@@ -7,6 +6,7 @@ import telegram
 import logging
 import katdisk
 import utils
+import time
 import re
 
 def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change: dict|None = None):
@@ -25,8 +25,15 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change
         deletionDiskPage.text = rest
         if utils.savePage(deletionDiskPage, f'Verschiebe Beitrag von {userLink} nach [[{katDiskLink}]]', botflag=True):
             katDiskPage = pywikibot.Page(site, katDiskLink)
-            katDiskPage.text += '\n' + wrongKats
-            if not utils.savePage(katDiskPage, f'Verschiebe Beitrag von {userLink} aus [[{titel}]]', botflag=True):
+            wrongKatsSplit = wrongKats.split('\n')
+            katDiskSplit = katDiskPage.text.split('\n')
+            i = 1
+            while i <= len(wrongKatsSplit) and \
+                i <= len(katDiskSplit) and \
+                wrongKatsSplit[len(wrongKatsSplit)-i] == katDiskSplit[len(katDiskSplit)-i]: 
+                    i += 1
+            katDiskPage.text = '\n'.join(katDiskSplit[:len(katDiskSplit)-i] + wrongKatsSplit[:len(wrongKatsSplit)-i+1] + katDiskSplit[len(katDiskSplit)-i:])
+            if not utils.savePage(katDiskPage, f'Verschiebe Beitrag {f'[[Spezial:Diff/{change['revision']['new']}]] ' if change is not None else ''}von {userLink} aus [[{titel}]]', botflag=True):
                 raise Exception('Incomplete move of discussion from deletion disk to kat-disk')
         return
     parsedDeletionDisk = parseDeletionDisk(deletionDiskPage)
