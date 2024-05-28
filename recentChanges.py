@@ -178,6 +178,14 @@ class LagMonitor:
         self.maxLag = 0
         self.minLag = 9999999999999999
         self.firstLag: float = 0
+    def formatSeconds(self, timediff: int):
+        result = f'{timediff%60} s'; timediff = timediff // 60
+        if timediff == 0: return result
+        result = f'{timediff%60} min, {result}'; timediff = timediff // 60
+        if timediff == 0: return result
+        result = f'{timediff%24} h, {result}'; timediff = timediff // 24
+        if timediff == 0: return result
+        return f'{timediff} d, {result}'
     def checkRevision(self, change: dict):
         lag = int(time.time() - change['timestamp'])
         if lag > DELAY_THRESHOLD and self.maxLag <= DELAY_THRESHOLD: self.firstLag = time.time()
@@ -187,7 +195,7 @@ class LagMonitor:
             logging.warning(f'Handled revision {change.get('revision')} with delay of {lag}s')
             self.numberOfDelayedChanges += 1
         if (self.maxLag > DELAY_THRESHOLD) and (time.time() - self.lastLagNotification > 600) and (time.time() - self.firstLag > 300):
-            telegram.send(f'LAG WARNING\nminimum: {self.minLag//60} min, {self.minLag%60} s\nmaximum: {self.maxLag//60} min, {self.maxLag%60} s\n{self.numberOfDelayedChanges} delayed changes since last notification', silent=True)
+            telegram.send(f'LAG WARNING\nminimum: {self.formatSeconds(self.minLag)}\nmaximum: {self.formatSeconds(self.maxLag)}\n{self.numberOfDelayedChanges} delayed changes', silent=True)
             self.numberOfDelayedChanges = 0
             self.lastLagNotification = time.time()
             self.maxLag = 0
