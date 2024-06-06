@@ -9,7 +9,9 @@ def send(message: str, silent: bool=False):
     logmessage = message.replace('\n', ' ↵ ')
     logging.info(f'Send telegram message: {logmessage[:maxLogLength]}{'...' if len(logmessage)>maxLogLength else ''}')
     url = f'https://api.telegram.org/bot'+telegramconfig.accessToken+'/sendMessage'
-    return requests.post(url, {'chat_id': telegramconfig.targetUser, 'text': message, 'disable_notification': silent}).ok
+    result = requests.post(url, {'chat_id': telegramconfig.targetUser, 'text': message, 'disable_notification': silent})
+    if not result.ok: logging.error(f'sending telegram message failed with status {result.status_code}')
+    return result.ok
 
 
 def handleException():
