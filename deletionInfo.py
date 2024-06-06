@@ -1,10 +1,9 @@
 from datetime import datetime
 import wikitextparser as wtp
+import deletionToKatdisk
 import recentChanges
 import pywikibot
-import telegram
 import logging
-import katdisk
 import utils
 import time
 import re
@@ -15,34 +14,22 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change
     if date is None or date is False or date < '2024-04-06': return
     logs: dict[str, dict[str,dict]] = utils.loadJson(f'data/deletionInfo/{date}.json', {})
     deletionDiskPage = pywikibot.Page(site, titel) 
-    wrongKats, rest = katdisk.extractFromDeletionDisk(deletionDiskPage.text)
-    if wrongKats != '': 
-        telegram.send(f'Verschiebe von {titel}')
-        logging.info('Verschiebe Eintrag von Löschdiskussionsseite nach WikiProjekt Kategorien')
-        logging.info(change)
-        userLink = '???' if change is None else f'[[Benutzer:{change['user']}]]'
-        katDiskLink = f'Wikipedia:WikiProjekt Kategorien/Diskussionen/{date[:4]}/{['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'][int(date[5:7])-1]}/{int(date[8:10])}'
-        deletionDiskPage.text = rest
-        if utils.savePage(deletionDiskPage, f'Verschiebe Beitrag von {userLink} nach [[{katDiskLink}]]', botflag=True):
-            katDiskPage = pywikibot.Page(site, katDiskLink)
-            wrongKatsSplit = wrongKats.split('\n')
-            katDiskSplit = katDiskPage.text.split('\n')
-            i = 1
-            while i <= len(wrongKatsSplit) and \
-                i <= len(katDiskSplit) and \
-                wrongKatsSplit[len(wrongKatsSplit)-i] == katDiskSplit[len(katDiskSplit)-i]: 
-                    i += 1
-            katDiskPage.text = '\n'.join(katDiskSplit[:len(katDiskSplit)-i] + wrongKatsSplit[:len(wrongKatsSplit)-i+1] + katDiskSplit[len(katDiskSplit)-i:])
-            if not utils.savePage(katDiskPage, f'Verschiebe Beitrag {f'[[Spezial:Diff/{change['revision']['new']}]] ' if change is not None else ''}von {userLink} aus [[{titel}]]', botflag=True):
-                raise Exception('Incomplete move of discussion from deletion disk to kat-disk')
-        return
+    if deletionToKatdisk.moveKatDiskFromDeletionDisk(site, deletionDiskPage, date, change):
+        return handleDeletionDiscussionUpdate(site, titel, change)
     parsedDeletionDisk = parseDeletionDisk(deletionDiskPage)
     for pagetitle, userlinks in parsedDeletionDisk.items():
         try:
             if logs.get(pagetitle) != None: continue
             logging.info(f'Check page {pagetitle} on deletion disk {date} ...')
-            allTitles, mainAuthors = parseRevisionHistory(pywikibot.Page(site, pagetitle))
-            if any([logs.get(i)!=None for i in allTitles]): continue
+            page = pywikibot.Page(site, pagetitle)
+            pagetitle = page.title()
+            allTitles, mainAuthors = parseRevisionHistory(page)
+            if len(allTitles) > 1:
+                logging.debug(f'found multiple titles: {' und '.join([f'"{i}"' for i in allTitles])}')
+            if any([logs.get(i)!=None for i in allTitles]): 
+                if logs.get(pagetitle) == None:
+                    logs[pagetitle] = dict()
+                continue
             for author in mainAuthors:
                 if not mainAuthors[author]['major']: continue
                 if re.match(ipRegex, author): logging.info(f'do not notify {author} because he is ip'); continue
@@ -160,7 +147,7 @@ def checkForExistingInfoOnDisk(disk: pywikibot.Page, pagetitles: set[str]):
         for pagetitle in pagetitles:
             for sec in parsed.sections:
                 if sec.title is None: continue
-                if (pagetitle not in sec.title) and (wtp.parse(pagetitle).plain_text() not in sec.title): continue
+                if (pagetitle not in sec.title) and (wtp.parse(pagetitle).plain_text() not in wtp.parse(sec.title).plain_text()): continue
                 if sec.title.startswith(' Hinweis zur Löschung der Seite') and ('Beste Grüße vom --[[Benutzer:TabellenBot|TabellenBot]] • [[Benutzer Diskussion:Kuebi|Diskussion]]' in sec.contents): continue
                 if 'lösch' in sec.contents.lower(): return True
         return False
@@ -223,6 +210,7 @@ Ich bin übrigens nur ein [[WP:Bots|Bot]]. Wenn ich nicht richtig funktioniere, 
 Freundliche Grüsse  --~~~~"""
         
 if __name__ == '__main__':
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - DEBUGGING - %(message)s', level=logging.DEBUG)
     site = pywikibot.Site('de', 'wikipedia')
     site.login()
     handleDeletionDiscussionUpdate(site, 'Wikipedia:Löschkandidaten/18. April 2024')

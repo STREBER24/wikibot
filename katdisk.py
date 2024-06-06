@@ -7,33 +7,6 @@ import utils
 import time
 import re
 
-def extractFromDeletionDisk(content: str) -> tuple[str,str]: # (Kategorien, Rest)
-    parsed = wtp.parse(content)
-    result = ''
-    ok = False
-    for sec in parsed.sections:
-        if sec.level == 1 and (sec.title or '').strip() == 'Benutzerseiten': ok = True; break
-        if sec.title != None:
-            result += '\n' + sec.level*'=' + ' ' + sec.title + ' ' + sec.level*'=' + '\n\n' + sec.contents
-            del sec.title
-            sec.contents = ''
-        else:
-            split = sec.contents.strip().split('\n')
-            newContents = []
-            if len(split)>0 and re.match('^{{Löschkandidatenseite|erl=.*}}$', split[0]):
-                newContents.append(split[0])
-                split.pop(0)
-            while len(split)>0 and split[0].strip() == '':
-                split.pop(0)
-            if len(split)>0 and re.match('^<!-- Hinweis an den letzten Bearbeiter: Wenn alles erledigt ist, hinter "erl=" mit --~~~~ signieren. -->', split[0]):
-                newContents.append(split[0])
-                split.pop(0)
-            sec.contents = '\n'.join(newContents) + '\n\n'
-            result += '\n'.join(split)
-    if not ok:
-        raise Exception(f'Keine Überschrift Benutzerdiskussionsseiten auf Löschkandidatenseite gefunden.')
-    return result.strip().strip().replace('\n<span></span>\n','\n').replace('\n\n\n', '\n\n'), parsed.string.strip().replace('\n\n\n', '\n\n')
-
 NOTIFICATION_DELAY = 60*15 # 15min
 def handleKatDiscussionUpdate(site: pywikibot._BaseSite, titel: str):
     date = titel.split('/')[2] + '-' + str(recentChanges.parseMonthDict[titel.split('/')[3]]).rjust(2,'0') + '-' + titel.split('/')[4].rjust(2,'0')
