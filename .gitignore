@@ -9,3 +9,4 @@ logs
 user-password.py
 telegramconfig.py
 env
+.vscode

@@ -19,10 +19,14 @@ def handleException():
     send('Mimimi, du hast Müll gebaut, deshalb stürze ich jetzt ab:\n\n' + traceback.format_exc())
     
 
+def difflink(change: dict):
+    return f'https://de.wikipedia.org/wiki/Spezial:Diff/{change['revision']['new']}'
+
+
 def alarmOnChange(change: dict):
     def notify(msg: str):
         logging.warning(change)
-        send(f'{msg}:\nhttps://de.wikipedia.org/wiki/Spezial:Diff/{change['revision']['new']}')
+        send(f'{msg}:\n{difflink(change)}')
     if re.match('Bot: Benachrichtigung über Löschdiskussion zum Artikel', change['comment']):
         notify('XqBot aktiv')
         return True
