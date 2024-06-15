@@ -50,7 +50,7 @@ def addAllDischs():
             if utils.findTemplateArg(template, 'Region-ISO') != 'DE-BW': continue
             currentID = utils.findTemplateArg(template, 'Schulnummer')
             if currentID not in [None, '']:
-                print(f'skip because id is already set: {page.title()}')
+                # print(f'skip because id is already set: {page.title()}')
                 continue
             dischs = getAllSchoolDischs(page.title()) | getAllSchoolDischs(utils.findTemplateArg(template, 'Schulname'))
             if len(dischs) == 0:
@@ -64,7 +64,7 @@ def addAllDischs():
             template.set_arg('Schulnummer', disch, preserve_spacing=True)
             page.text = parsed
             if optOut.isAllowed(page):
-                page.save(botflag=True, minor=False, summary=(f'Bot: Ergänze Schulnummer (DISCH). Siehe km-bw.de/Schuladressdatenbank'))
+                page.save(botflag=True, minor=False, summary=(f'Bot: Ergänze Schulnummer (DISCH). Siehe https://schulamt-bw.de/Schuladressdatenbank'))
 
 def addWikidataNumberClaim(repo: Any, item: pywikibot.ItemPage, property: str, number: int, url: str, pointInTime: pywikibot.WbTime):
     if property in item.get()['claims']:
@@ -106,8 +106,8 @@ def updateWikidata():
             students = school.get('SCHUELER')
             teachers = school.get('LEHRER')
             item = pywikibot.ItemPage.fromPage(page)
-            if students != None: addWikidataNumberClaim(repo, item, 'P2196',  students, 'https://km-bw.de/Schuladressdatenbank', pywikibot.WbTime(2023, 1))
-            if teachers != None: addWikidataNumberClaim(repo, item, 'P10610', teachers, 'https://km-bw.de/Schuladressdatenbank', pywikibot.WbTime(2023, 1))
+            if students != None: addWikidataNumberClaim(repo, item, 'P2196',  students, 'https://schulamt-bw.de/Schuladressdatenbank', pywikibot.WbTime(2024, 1))
+            if teachers != None: addWikidataNumberClaim(repo, item, 'P10610', teachers, 'https://schulamt-bw.de/Schuladressdatenbank', pywikibot.WbTime(2024, 1))
 
 if __name__ == '__main__':
     # addAllDischs()
