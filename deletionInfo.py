@@ -43,11 +43,10 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change
         except Exception as e:
             e.add_note(f'failed while checking page {pagetitle} on deletion disk')
             raise e
-    sendDeletionNotifications(site)
+    sendDeletionNotifications(site, date)
 
 NOTIFICATION_DELAY = 60*15 # 15min
-def sendDeletionNotifications(site):
-    date = datetime.now().strftime('%Y-%m-%d')
+def sendDeletionNotifications(site, date: str=datetime.now().strftime('%Y-%m-%d')):
     logs: dict[str, dict[str,dict]] = utils.loadJson(f'data/deletionInfo/{date}.json', {})
     deletionDiskTitle = 'Wikipedia:Löschkandidaten/' + utils.formatDate(int(date[8:10]), date[5:7], date[0:4])
     deletionDiskPage = pywikibot.Page(site, deletionDiskTitle)
@@ -149,6 +148,7 @@ def checkForExistingInfoOnDisk(disk: pywikibot.Page, pagetitles: set[str]):
                 if sec.title is None: continue
                 if (pagetitle not in sec.title) and (wtp.parse(pagetitle).plain_text() not in wtp.parse(sec.title).plain_text()): continue
                 if sec.title.startswith(' Hinweis zur Löschung der Seite') and ('Beste Grüße vom --[[Benutzer:TabellenBot|TabellenBot]] • [[Benutzer Diskussion:Kuebi|Diskussion]]' in sec.contents): continue
+                if sec.title.startswith(' Herzlich willkommen in der Wikipedia, ') and (sec.contents.count('lösch') <= 1) and (sec.contents.startswith('Ich habe gesehen, dass [[Wikipedia:Warum sich hier alle duzen|du]] dich kürzlich hier angemeldet hast, und möchte dir ein paar Tipps geben, damit du dich in der Wikipedia möglichst schnell zurechtfindest:')): continue
                 if 'lösch' in sec.contents.lower(): return True
         return False
     except pywikibot.exceptions.InvalidTitleError:
