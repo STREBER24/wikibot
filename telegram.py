@@ -42,3 +42,6 @@ def alarmOnChange(change: dict):
     if change['title'] in watchlist:
         notify('Beobachtete Seite bearbeitet.')
         return True
+
+if __name__ == '__main__':
+    send('TEST')
