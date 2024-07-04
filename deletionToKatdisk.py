@@ -54,7 +54,7 @@ def moveKatDiskFromDeletionDisk(site: Any, deletionDiskPage: pywikibot.Page, dat
                                                  'timestring': datetime.fromtimestamp(change['timestamp']).strftime('%d.%m.%Y %H:%M'), 
                                                  'diff': change['revision']['new']}
             utils.dumpJson('data/moveHistory.json', moveHistory)
-        telegram.send(f'{'Verschiebe von' if engage else 'Falscher Eintrag in'} {deletionDiskPage.title()}{'' if change is None else '\n'+telegram.difflink(change)}')
+        telegram.send(f'{'Verschiebe von' if engage else 'Falscher Eintrag in'} {deletionDiskPage.title()}{'' if change is None else f' ({telegram.difflink(change)})'}')
         logging.info('Verschiebe Eintrag von Löschdiskussionsseite nach WikiProjekt Kategorien')
         logging.info(change)
         userLink = '???' if change is None else f'[[Benutzer:{change['user']}]]'
