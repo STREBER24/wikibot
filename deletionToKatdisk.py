@@ -73,7 +73,7 @@ def moveKatDiskFromDeletionDisk(site: Any, deletionDiskPage: pywikibot.Page, dat
             file.write(katDiskPage.text)
         if engage:
             if utils.savePage(deletionDiskPage, f'Verschiebe Beitrag von {userLink} nach [[{katDiskLink}]]', botflag=True):
-                if not utils.savePage(katDiskPage, f'Verschiebe Beitrag {f'[[Spezial:Diff/{change['revision']['new']}]] ' if change is not None else ''}von {userLink} aus [[{deletionDisk.title()}]]', botflag=True):
+                if not utils.savePage(katDiskPage, f'Verschiebe Beitrag {f'[[Spezial:Diff/{change['revision']['new']}]] ' if change is not None else ''}von {userLink} aus [[{deletionDiskPage.title()}]]', botflag=True):
                     raise Exception('Incomplete move of discussion from deletion disk to kat-disk')
             return True
     return False
