@@ -1,4 +1,4 @@
-import recentChanges
+import citeParamChecker
 import traceback
 import telegram
 import optOut
@@ -13,7 +13,7 @@ PORT = 80
 @app.route('/aktualisiere-wartungsliste-cache')
 def aktualisiere_wartungsliste_cache(): 
     if utils.checkLastUpdate('aktualisiere-wartungsliste-cache', 15):
-        recentChanges.updateWikilist()
+        citeParamChecker.updateWikilist()
         return 'Wartungsliste erfolgreich aktualisiert. Du wirst gleich weitergeleitet ...', {"Refresh": "4; url=https://de.wikipedia.org/wiki/Benutzer:DerIchBot/Wartungsliste"}
     else:
         return 'Aktualisierung verweigert, da letzte Aktualisierung aus Cache weniger als 15 Minuten her ist.'
@@ -21,8 +21,8 @@ def aktualisiere_wartungsliste_cache():
 @app.route('/aktualisiere-wartungsliste-check')
 def aktualisiere_wartungsliste_check(): 
     if utils.checkLastUpdate('aktualisiere-wartungsliste-check', 15):
-        recentChanges.checkPagesInProblemList()
-        recentChanges.updateWikilist()
+        citeParamChecker.checkPagesInProblemList()
+        citeParamChecker.updateWikilist()
         return 'Wartungsliste erfolgreich geprüft und aktualisiert. Du wirst gleich weitergeleitet ...', {"Refresh": "4; url=https://de.wikipedia.org/wiki/Benutzer:DerIchBot/Wartungsliste"}
     else:
         return 'Aktualisierung verweigert, da letzte Aktualisierung mit Prüfung weniger als 15 Minuten her ist.'
@@ -37,7 +37,7 @@ def aktualisiere_opt_out():
 
 @app.route('/number-of-problems')
 def number_of_problems():
-    return f'{len(recentChanges.loadAllProblems())} Probleme im Cache'
+    return f'{len(citeParamChecker.loadAllProblems())} Probleme im Cache'
 
 @app.errorhandler(500)
 def exception_handler(error):

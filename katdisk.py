@@ -1,6 +1,6 @@
 import wikitextparser as wtp
 from typing import Literal
-import recentChanges
+import citeParamChecker
 import pywikibot
 import logging
 import utils
@@ -9,7 +9,7 @@ import re
 
 NOTIFICATION_DELAY = 60*15 # 15min
 def handleKatDiscussionUpdate(site: pywikibot._BaseSite, titel: str):
-    date = titel.split('/')[2] + '-' + str(recentChanges.parseMonthDict[titel.split('/')[3]]).rjust(2,'0') + '-' + titel.split('/')[4].rjust(2,'0')
+    date = titel.split('/')[2] + '-' + str(citeParamChecker.parseMonthDict[titel.split('/')[3]]).rjust(2,'0') + '-' + titel.split('/')[4].rjust(2,'0')
     if date < '2024-04-18': return
     logs: dict[str, int|str|Literal[False]] = utils.loadJson(f'data/katDiskInfo/{date}.json', {})
     diskPage = pywikibot.Page(site, titel)

@@ -1,7 +1,7 @@
 from datetime import datetime
 import wikitextparser as wtp
 import deletionToKatdisk
-import recentChanges
+import citeParamChecker
 import pywikibot
 import logging
 import utils
@@ -10,7 +10,7 @@ import re
 
 def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change: dict|None = None):
     assert re.match('^Wikipedia:Löschkandidaten/.', titel)
-    date = recentChanges.parseWeirdDateFormats(titel[26:])
+    date = citeParamChecker.parseWeirdDateFormats(titel[26:])
     if date is None or date is False or date < '2024-04-06': return
     logs: dict[str, dict[str,dict]] = utils.loadJson(f'data/deletionInfo/{date}.json', {})
     deletionDiskPage = pywikibot.Page(site, titel) 

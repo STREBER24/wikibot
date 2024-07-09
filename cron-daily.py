@@ -1,5 +1,5 @@
 from datetime import datetime
-import recentChanges
+import citeParamChecker
 import speedcubing
 import edelmetalle
 import telegram
@@ -21,7 +21,7 @@ if __name__ == '__main__':
         optOut.downloadAll()
         
         print('\n======== WARTUNGSLISTE ========')
-        recentChanges.checkPagesInProblemList()
+        citeParamChecker.checkPagesInProblemList()
         
         print(f'\n[{datetime.now()}] finished daily routine\n')
     
