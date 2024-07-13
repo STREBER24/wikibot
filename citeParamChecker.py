@@ -8,6 +8,7 @@ import logging
 import optOut
 import utils
 import pytz
+import time
 import re
 
 parseMonthDict = {'Januar':1, 'Jänner':1, 'January':1, 'Jan':1,
@@ -51,25 +52,25 @@ def getTodayString():
     ''' Gibt Datum in der Form YYYY-MM-DD deutscher Zeit zurück '''
     return datetime.now(tz=pytz.timezone('Europe/Berlin')).strftime('%Y-%m-%d')
 
-def datesOk(template: wtp.Template) -> Literal[True] | str:
+def datesOk(template: wtp.Template) -> tuple[Literal[True]|str, str|None]:
     ''' Prüft, ob Daten der Vorlagen Internetquelle, Literatur und Cite web ungültig sind oder in der Zukunft liegen '''
     templateName = template.name.strip()
     if templateName not in ['Internetquelle', 'Literatur', 'Cite web']:
-        return True
+        return True, None
     todayString = getTodayString()
     abruf   = parseWeirdDateFormats(utils.findTemplateArg(template, {'Internetquelle': 'abruf',   'Literatur': 'Abruf',   'Cite web': 'access-date'}[templateName]))
     zugriff = parseWeirdDateFormats(utils.findTemplateArg(template, {'Internetquelle': 'zugriff', 'Literatur': 'Zugriff', 'Cite web': 'accessdate'}[templateName]))
     datum   = parseWeirdDateFormats(utils.findTemplateArg(template, {'Internetquelle': 'datum',   'Literatur': 'Datum',   'Cite web': 'date'}[templateName]))
-    if abruf == False: return 'Abrufdatum ungültig.'
-    if zugriff == False: return 'Zugriffsdatum ungültig.'
-    if datum == False: return 'Veröffentlichungsdatum ungültig.'
-    if datum != None and datum > todayString: return "Parameter datum liegt in der Zukunft."
-    if abruf == None and zugriff == None and templateName == 'Internetquelle': return "Pflichtparameter abruf nicht gesetzt."
-    if abruf == None and zugriff == None and templateName != 'Internetquelle': return True
-    if abruf != None and zugriff != None: return "Parameter abruf und zugriff beide gesetzt."
+    if abruf == False: return 'Abrufdatum ungültig.', abruf
+    if zugriff == False: return 'Zugriffsdatum ungültig.', zugriff
+    if datum == False: return 'Veröffentlichungsdatum ungültig.', datum
+    if datum != None and datum > todayString: return "Parameter datum liegt in der Zukunft.", datum
+    if abruf == None and zugriff == None and templateName == 'Internetquelle': return "Pflichtparameter abruf nicht gesetzt.", abruf
+    if abruf == None and zugriff == None and templateName != 'Internetquelle': return True, None
+    if abruf != None and zugriff != None: return "Parameter abruf und zugriff beide gesetzt.", abruf
     if abruf == None: abruf = zugriff
-    if abruf > todayString: return "Parameter abruf/zugriff liegt in der Zukunft."
-    return True
+    if abruf > todayString: return "Parameter abruf/zugriff liegt in der Zukunft.", abruf
+    return True, None
 
 def archiveParamsOk(template: wtp.Template) -> Literal[True] | str:
     ''' Prüft, ob Parameter archiv-url und archiv-datum der Vorlagen Internetquelle und Cite web konsistent sind '''
@@ -92,16 +93,30 @@ def archiveParamsOk(template: wtp.Template) -> Literal[True] | str:
     return "Falsches Archivierungsdatum gesetzt."
 
 class Problem(dict):
-    def __init__(self, titel: str|None=None, problemtyp: str|None=None, snippet: str|None=None, foundDate: str|None=None, dictionary: dict = {}):
+    def __init__(self, titel: str|None=None, problemtyp: str|None=None, snippet: str|None=None, foundDate: str|None=None, assets: Any=None, dictionary: dict = {}):
         if not isinstance(titel,       str): titel       = dictionary.get('titel')
         if not isinstance(problemtyp,  str): problemtyp  = dictionary.get('problemtyp')
         if not isinstance(snippet,     str): snippet     = dictionary.get('snippet')
         if not isinstance(foundDate,   str): foundDate   = dictionary.get('foundDate')
-        assert isinstance(titel, str);        self.titel       = titel
-        assert isinstance(problemtyp, str);   self.problemtyp  = problemtyp
-        assert isinstance(snippet, str);      self.snippet     = snippet
-        assert isinstance(foundDate, str);    self.foundDate   = foundDate
-        self.revision: int|None = dictionary.get('revision')
+        if assets is None:                   assets      = dictionary.get('assets')
+        freshVersion = dictionary.get('freshVersion')
+        revision     = dictionary.get('revision')
+        user         = dictionary.get('user')
+        assert isinstance(titel, str)
+        assert isinstance(problemtyp, str)
+        assert isinstance(snippet, str)
+        assert isinstance(foundDate, str)
+        assert isinstance(freshVersion, bool) or freshVersion is None
+        assert isinstance(revision, int) or revision is None
+        assert isinstance(user, str) or user is None
+        self.titel        = titel
+        self.problemtyp   = problemtyp
+        self.foundDate    = foundDate
+        self.snippet      = snippet
+        self.freshVersion = freshVersion
+        self.revision     = revision
+        self.user         = user
+        self.assets       = assets
     def __str__(self):
         return self.titel + ': ' + self.problemtyp + ' ' + self.snippet
     def __eq__(self, other):
@@ -111,7 +126,7 @@ class Problem(dict):
         if self.snippet != other.snippet: return False
         return True
     def toDict(self):
-        return {'titel': self.titel, 'problemtyp': self.problemtyp, 'snippet': self.snippet, 'foundDate': self.foundDate, 'revision': self.revision}
+        return {'titel': self.titel, 'problemtyp': self.problemtyp, 'snippet': self.snippet, 'foundDate': self.foundDate, 'revision': self.revision, 'freshVersion': self.freshVersion, 'assets': self.assets, 'user': self.user}
 
 def loadAllProblems() -> list[Problem]:
     content: list[dict] = utils.loadJson('data/problems.json', [])
@@ -123,12 +138,12 @@ def dumpAllProblems(allProblems: list[Problem]):
 
 def checkPageContent(titel: str, content: str, todayString: str):
     for template in wtp.parse(content).templates:
-        result = datesOk(template)
+        result, asset = datesOk(template)
         if True != result: 
-            yield Problem(titel, result, str(template), todayString, False)
+            yield Problem(titel, result, str(template), todayString, asset)
         result = archiveParamsOk(template)
         if True != result: 
-            yield Problem(titel, result, str(template), todayString, False)
+            yield Problem(titel, result, str(template), todayString)
 
 def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousServerErrors: int=0):
     try:
@@ -141,9 +156,11 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
                     if rev['parentid'] == 0: problem.revision = rev['revid']; break
                     oldContent = page.getOldVersion(rev['parentid'])
                     if oldContent == None: break # Version verborgen
-                    oldProblems = checkPageContent(page.title(), oldContent, getTodayString())
-                    if problem not in oldProblems: 
+                    oldProblems = list(checkPageContent(page.title(), oldContent, getTodayString()))
+                    if problem not in oldProblems:
+                        problem.freshVersion = (oldProblems == [])
                         problem.revision = rev['revid']
+                        problem.user = rev['user']
                         break
                 except Exception as e:
                     e.add_note(f'failed while checking if problem already existed before revision {rev.get('revid')}')
@@ -167,10 +184,9 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
         e.add_note(f'failed while checking page {pagetitle}')
         raise e
 
-def checkPagesInProblemList():
+def checkPagesInProblemList(site):
     allProblems = loadAllProblems()
     logging.debug(f'checking list of {len(allProblems)} problems ...')
-    site = pywikibot.Site('de', 'wikipedia')
     site.login()
     index = 0
     allPages = set()
@@ -210,7 +226,7 @@ def updateWikilist():
     wikitext = '{{/Info|' + str(len(allProblems)) + '}}\n\n'
     for problem in allProblems:
         if datum != problem.foundDate:
-            wikitext += f'== {utils.formatDate(int(problem.foundDate[8:10]), problem.foundDate[5:7], problem.foundDate[0:4])} ==\n\n'
+            wikitext += f'== {utils.formatDateFromDatestring(problem.foundDate)} ==\n\n'
         if titel != problem.titel or datum != problem.foundDate:
             wikitext += '{{Überschriftensimulation|3|Text=[[' + problem.titel + ']]}}\n'
         wikitext += f'{problem.problemtyp}{'' if problem.revision==None else f' ([[Spezial:Diff/{problem.revision}|Änderung]])'}\n'
@@ -225,3 +241,68 @@ def updateWikilist():
     if optOut.isAllowed(page):
         page.save(botflag=True, minor=False, summary=(f'Bot: Aktualisiere Wartungsliste: {len(allProblems)} Einträge'))
     site.logout()
+    
+numberOfChanges = 0
+numberOfNewProblems = 0
+def checkPagefromRecentChanges(site: Any, pagetitle: str):
+    global numberOfNewProblems
+    global numberOfChanges
+    numberOfChanges += 1
+    allProblems = loadAllProblems()
+    newProblems = checkPage(site, pagetitle, allProblems)
+    for problem in newProblems:
+        numberOfNewProblems += 1
+        if re.match('Parameter (datum|abruf/zugriff) liegt in der Zukunft\\.', problem.problemtyp) and problem.freshVersion:
+            futureWarnings: list[str] = utils.loadJson('data/futureWarningsPlanned.json', [])
+            if problem.titel not in futureWarnings: futureWarnings.append(problem.titel)
+            utils.dumpJson('data/futureWarningsPlanned.json', futureWarnings)
+    if len(allProblems) <= 200:
+        allProblems += newProblems
+    dumpAllProblems(allProblems)
+    if numberOfChanges >= 200:
+        logging.info(f'Checked 200 changes and found {numberOfNewProblems} new problems.')
+        numberOfNewProblems = 0
+        numberOfChanges = 0
+
+def sendPlannedNotifications(site):
+    plannedNotifications: list[str] = utils.loadJson('data/futureWarningsPlanned.json', [])
+    sentNotifications: dict[str, dict[str, str]] = utils.loadJson('data/futureWarningsSent.json', {})
+    skippedNotifications: set[str] = set()
+    outgoingNotifications: dict[str, set[str]] = {}
+    for pagetitle in plannedNotifications:
+        logging.info(f'check page "{pagetitle}" to notifications on cite param problems ...')
+        timeSinceLastRevision = (time.time() - pywikibot.Page(site, pagetitle).latest_revision['timestamp'].timestamp()) / 3600
+        logging.debug(f'time since latest revision on {pagetitle}: {timeSinceLastRevision:.2f}h')
+        if timeSinceLastRevision < 6:
+            logging.info(f'skip problem notification on "{pagetitle}" because latest revision is too new')
+            skippedNotifications.add(pagetitle)
+            continue
+        for problem in checkPage(site, pagetitle, []):
+            if not re.match('Parameter (datum|abruf/zugriff) liegt in der Zukunft\\.', problem.problemtyp): continue
+            if not problem.freshVersion: continue
+            if sentNotifications.get(problem.user) == None: sentNotifications[problem.user] = {}
+            if sentNotifications[problem.user].get(pagetitle) != None: 
+                logging.info(f'skip notification of {problem.user} on "{pagetitle}" because already notified on {sentNotifications[problem.user][pagetitle]}')
+                continue
+            logging.debug(problem.toDict())
+            if outgoingNotifications.get(problem.user) == None: outgoingNotifications[problem.user] = set()
+            datumstyp = 'Veröffentlichungsdatum' if problem.problemtyp.startswith('Parameter datum') else 'Abrufdatum'
+            outgoingNotifications[problem.user].add(f'Du hast mit [[Spezial:Diff/{problem.revision}|dieser Änderung]] auf [[{pagetitle}]] den {utils.formatDateFromDatestring(problem.assets)} als {datumstyp} angegeben. Da dieses Datum in der Zukunft liegt, möchte ich dich bitten, deine Änderung nochmal auf Tippfehler zu überprüfen.')
+            sentNotifications[problem.user][pagetitle] = getTodayString()
+    for user, messages in outgoingNotifications.items():
+        messageList = list(messages)
+        messageList[0] = messageList[0][0].lower() + messageList[0][1:]
+        completeMessage = utils.formatUserInfo('Möglicherweise fehlerhafte Datumsangabe', user, '\n\n'.join(messageList))
+        userdisk = pywikibot.Page(site, f'Benutzer Diskussion:{user}')
+        userdisk.text += completeMessage
+        if utils.savePage(userdisk, f'Informiere über potentiell fehlerhafte Datumsangabe', botflag=True):
+            logging.info(f'Notify {user} about cite param problem')
+        else:
+            logging.info(f'do not notify {user} because saving failed')
+    utils.dumpJson('data/futureWarningsPlanned.json', list(skippedNotifications))
+    utils.dumpJson('data/futureWarningsSent.json', sentNotifications)
+
+if __name__ == '__main__':
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - CITE PARAMS - %(message)s', level=logging.DEBUG)
+    site = pywikibot.Site('de', 'wikipedia')
+    sendPlannedNotifications(site)

@@ -22,8 +22,13 @@ def getText(tag: bs4.Tag | str | None) -> str:
 
 def formatDate(day: str|int, month: str|int, year: str|int):
     months = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember']
-    return f'{day}. {months[int(month)-1]} {year}'
+    daystring = f'{int(day)}. ' if day != '' else ''
+    monthstring = months[int(month)-1]+' ' if month != '' else ''
+    return daystring + monthstring + str(year)
 
+def formatDateFromDatestring(datestring: str):
+    return formatDate(datestring[8:10], datestring[5:7], datestring[0:4])
+    
 def getTemplateUsage(site: pywikibot.Site, tmpl_name: str):
     print(f'[INFO] checking usage of template {tmpl_name} ...', end=' ')
     name = "{}:{}".format(site.namespace(10), tmpl_name)
@@ -102,3 +107,18 @@ def isBlockedForInfinity(site, username: str):
 def extractUserLinks(sec: wtp.Section):
     return set([':'.join(link.target.split(':')[1:]) for link in sec.wikilinks if re.match('^(benutzer|benutzer diskussion|bd|user|user talk):', link.target.lower())]+
                [findTemplateArg(template, '1') for template in sec.templates if template.name.strip().lower() == 'ping'])
+
+ipRegex = re.compile('^(((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])|((([0-9a-fA-F]){1,4})\\:){7}([0-9a-fA-F]){1,4})$') 
+
+def formatUserInfo(title: str, username: str, content: str, additionalOptOut: list[str]=[]):
+    optOutLists = ']] oder '.join([f'[[{liste}|dieser' for liste in additionalOptOut + ['Benutzer:DerIchBot/Opt-Out Liste']])
+    return f"""
+== {title} ==
+
+Hallo{'' if re.match(ipRegex, username) else ' '+username},
+
+{content}
+
+Ich bin übrigens nur ein [[WP:Bots|Bot]]. Wenn ich nicht richtig funktioniere, sag bitte [[Benutzer Diskussion:DerIch27|DerIch27]] bescheid. Wenn du nicht mehr von mir benachrichtigt werden möchtest, kannst du dich auf {optOutLists} Liste]] eintragen.
+
+Freundliche Grüsse  --~~~~"""

@@ -1,4 +1,5 @@
 import citeParamChecker
+import pywikibot
 import traceback
 import telegram
 import optOut
@@ -21,7 +22,8 @@ def aktualisiere_wartungsliste_cache():
 @app.route('/aktualisiere-wartungsliste-check')
 def aktualisiere_wartungsliste_check(): 
     if utils.checkLastUpdate('aktualisiere-wartungsliste-check', 15):
-        citeParamChecker.checkPagesInProblemList()
+        site = pywikibot.Site('de', 'wikipedia')
+        citeParamChecker.checkPagesInProblemList(site)
         citeParamChecker.updateWikilist()
         return 'Wartungsliste erfolgreich geprüft und aktualisiert. Du wirst gleich weitergeleitet ...', {"Refresh": "4; url=https://de.wikipedia.org/wiki/Benutzer:DerIchBot/Wartungsliste"}
     else:

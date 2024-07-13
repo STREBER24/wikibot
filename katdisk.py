@@ -82,18 +82,9 @@ def getPageCreator(page: pywikibot.Page) -> str|None:
 ipRegex = re.compile('^(((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])|((([0-9a-fA-F]){1,4})\\:){7}([0-9a-fA-F]){1,4})$') 
 
 def infoTemplate(username: str, kattitles: list[str], diskTitle: str):
-    isIP = bool(re.match(ipRegex, username))
     assert len(kattitles) > 0
-    return f"""
-== [[:{kattitles[0]}]]{' und '+str(len(kattitles)-1)+' weitere' if len(kattitles)>1 else ''} ==
-
-Hallo{'' if isIP else ' '+username},
-
-zu {len(kattitles) if len(kattitles)>1 else 'der im Betreff genannten und'} von dir erstellten Kategorie{'n' if len(kattitles)>1 else ''} wurde auf [[{diskTitle}]] eine Diskussion begonnen. Du bist herzlich eingeladen, dich an der Diskussion zu beteiligen.
-
-Ich bin übrigens nur ein [[WP:Bots|Bot]]. Wenn ich nicht richtig funktioniere, sag bitte [[Benutzer Diskussion:DerIch27|DerIch27]] bescheid. Wenn du nicht mehr von mir benachrichtigt werden möchtest, kannst du deine Benutzerdiskussionsseite auf [[Benutzer:DerIchBot/Opt-Out Liste|dieser Liste]] eintragen.
-
-Freundliche Grüsse  --~~~~"""
+    sectiontitle = f'[[:{kattitles[0]}]]{' und '+str(len(kattitles)-1)+' weitere' if len(kattitles)>1 else ''}'
+    return utils.formatUserInfo(sectiontitle, username, f'zu {len(kattitles) if len(kattitles)>1 else 'der im Betreff genannten und'} von dir erstellten Kategorie{'n' if len(kattitles)>1 else ''} wurde auf [[{diskTitle}]] eine Diskussion begonnen. Du bist herzlich eingeladen, dich an der Diskussion zu beteiligen.')
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s - %(levelname)s - DEBUGGING - %(message)s', level=logging.DEBUG)

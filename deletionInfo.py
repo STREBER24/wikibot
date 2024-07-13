@@ -32,7 +32,7 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change
                 continue
             for author in mainAuthors:
                 if not mainAuthors[author]['major']: continue
-                if re.match(ipRegex, author): logging.info(f'do not notify {author} because he is ip'); continue
+                if re.match(utils.ipRegex, author): logging.info(f'do not notify {author} because he is ip'); continue
                 if author in userlinks: logging.info(f'do not notify {author} because already on deletion disk'); continue
                 if author in utils.loadJson('data/opt-out-ld.json', []): logging.info(f'do not notify {author} because of opt out'); continue
                 if utils.isBlockedForInfinity(site, author): logging.info(f'do not notify {author} because he is blocked'); continue
@@ -155,59 +155,33 @@ def checkForExistingInfoOnDisk(disk: pywikibot.Page, pagetitles: set[str]):
         logging.warn(f'got invalid title while checking for existing info on disk')
         return False
 
-ipRegex = re.compile('^(((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])|((([0-9a-fA-F]){1,4})\\:){7}([0-9a-fA-F]){1,4})$') 
 interwikiRegex = re.compile('^[a-z][a-z]>')  
 
 def infoTemplate(username: str, pagetitle: str, deletionDiskTitle: str):
-    isIP = bool(re.match(ipRegex, username))
     sectiontitle = pagetitle.replace(' ','_')
     if pagetitle.startswith(':Vorlage') or pagetitle.startswith('Vorlage:'):
-        return f"""
-== [[{pagetitle}]] ==
-
-Hallo{'' if isIP else ' '+username},
-
+        return utils.formatUserInfo(f'[[{pagetitle}]]', username, f"""\
 gegen die im Betreff genannte, von dir angelegte oder erheblich bearbeitete Vorlage wurde ein Löschantrag gestellt (nicht von mir). Bitte entnimm den Grund dafür der '''[[{deletionDiskTitle}#{sectiontitle[1:]}|Löschdiskussion]]'''. Ob die Vorlage tatsächlich gelöscht wird, wird sich gemäß unserer [[WP:Löschregeln|Löschregeln]] im Laufe der siebentägigen Löschdiskussion entscheiden. 
 
 Du bist herzlich eingeladen, dich an der [[{deletionDiskTitle}#{pagetitle.replace(' ','_')}|Löschdiskussion]] zu beteiligen. Wenn du möchtest, dass die Vorlage behalten wird, kannst du dort die Argumente, die für eine Löschung sprechen, entkräften. Du kannst auch während der Löschdiskussion Verbesserungen an der Vorlage vornehmen.
 
 Da bei Wikipedia jeder Löschanträge stellen darf, sind manche Löschanträge auch offensichtlich unbegründet; solche Anträge kannst du ignorieren.
 
-Vielleicht fühlst du dich durch den Löschantrag vor den Kopf gestoßen, weil durch den Antrag die Arbeit, die Du in den Artikel gesteckt hast, nicht gewürdigt wird. [[WP:Sei tapfer|Sei tapfer]] und [[Wikipedia:Wikiquette|bleibe dennoch freundlich]]. Der andere meint es [[WP:Geh von guten Absichten aus|vermutlich auch gut]].
-
-Ich bin übrigens nur ein [[WP:Bots|Bot]]. Wenn ich nicht richtig funktioniere, sag bitte [[Benutzer Diskussion:DerIch27|DerIch27]] bescheid. Wenn du nicht mehr von mir benachrichtigt werden möchtest, kannst du dich auf [[Benutzer:Xqbot/Opt-out:LD-Hinweis|dieser]] oder [[Benutzer:DerIchBot/Opt-Out Liste|dieser Liste]] eintragen.
-
-Freundliche Grüsse  --~~~~"""
+Vielleicht fühlst du dich durch den Löschantrag vor den Kopf gestoßen, weil durch den Antrag die Arbeit, die Du in den Artikel gesteckt hast, nicht gewürdigt wird. [[WP:Sei tapfer|Sei tapfer]] und [[Wikipedia:Wikiquette|bleibe dennoch freundlich]]. Der andere meint es [[WP:Geh von guten Absichten aus|vermutlich auch gut]].""", ['Benutzer:Xqbot/Opt-out:LD-Hinweis'])
     elif pagetitle.startswith('Benutzer:'):
-        return f"""
-== [[{pagetitle}]] ==
-
-Hallo{'' if isIP else ' '+username},
-
+        return utils.formatUserInfo(f'[[{pagetitle}]]', username, f"""\
 gegen die im Betreff genannte, von dir angelegte oder erheblich bearbeitete Benutzerseite wurde ein Löschantrag gestellt (nicht von mir). Bitte entnimm den Grund dafür der '''[[{deletionDiskTitle}#{sectiontitle[1:]}|Löschdiskussion]]'''. Ob die Seite tatsächlich gelöscht wird, wird sich gemäß unserer [[WP:Löschregeln|Löschregeln]] im Laufe der siebentägigen Löschdiskussion entscheiden. 
 
-Du bist herzlich eingeladen, dich an der [[{deletionDiskTitle}#{pagetitle.replace(' ','_')}|Löschdiskussion]] zu beteiligen. Da bei Wikipedia jeder Löschanträge stellen darf, sind manche Löschanträge auch offensichtlich unbegründet; solche Anträge kannst du ignorieren.
-
-Ich bin übrigens nur ein [[WP:Bots|Bot]]. Wenn ich nicht richtig funktioniere, sag bitte [[Benutzer Diskussion:DerIch27|DerIch27]] bescheid. Wenn du nicht mehr von mir benachrichtigt werden möchtest, kannst du dich auf [[Benutzer:Xqbot/Opt-out:LD-Hinweis|dieser]] oder [[Benutzer:DerIchBot/Opt-Out Liste|dieser Liste]] eintragen.
-
-Freundliche Grüsse  --~~~~"""
+Du bist herzlich eingeladen, dich an der [[{deletionDiskTitle}#{pagetitle.replace(' ','_')}|Löschdiskussion]] zu beteiligen. Da bei Wikipedia jeder Löschanträge stellen darf, sind manche Löschanträge auch offensichtlich unbegründet; solche Anträge kannst du ignorieren.""", ['Benutzer:Xqbot/Opt-out:LD-Hinweis'])
     else:
-        return f"""
-== [[{pagetitle}]] ==
-
-Hallo{'' if isIP else ' '+username},
-
+        return utils.formatUserInfo(f'[[{pagetitle}]]', username, f"""\
 gegen den im Betreff genannten, von dir angelegten oder erheblich bearbeiteten Artikel wurde ein Löschantrag gestellt (nicht von mir). Bitte entnimm den Grund dafür der '''[[{deletionDiskTitle}#{sectiontitle}|Löschdiskussion]]'''. Ob der Artikel tatsächlich gelöscht wird, wird sich gemäß unserer [[WP:Löschregeln|Löschregeln]] im Laufe der siebentägigen Löschdiskussion entscheiden. In [[Wikipedia:Schnelllöschantrag#Artikellöschungen|den hier nachzulesenden Fällen]] kann eine Seite auch sofort gelöscht werden.
 
 Du bist herzlich eingeladen, dich an der [[{deletionDiskTitle}#{pagetitle.replace(' ','_')}|Löschdiskussion]] zu beteiligen. Wenn du möchtest, dass der Artikel behalten wird, kannst du dort die Argumente, die für eine Löschung sprechen, entkräften, indem du dich beispielsweise zur [[Wikipedia:Relevanzkriterien|enzyklopädischen Relevanz]] des Artikels äußerst. Du kannst auch während der Löschdiskussion Artikelverbesserungen vornehmen, die die Relevanz besser erkennen lassen und die [[Wikipedia:Artikel#Mindestanforderungen|Mindestqualität]] sichern.
 
 Da bei Wikipedia jeder Löschanträge stellen darf, sind manche Löschanträge auch offensichtlich unbegründet; solche Anträge kannst du ignorieren.
 
-Vielleicht fühlst du dich durch den Löschantrag vor den Kopf gestoßen, weil durch den Antrag die Arbeit, die Du in den Artikel gesteckt hast, nicht gewürdigt wird. [[WP:Sei tapfer|Sei tapfer]] und [[Wikipedia:Wikiquette|bleibe dennoch freundlich]]. Der andere meint es [[WP:Geh von guten Absichten aus|vermutlich auch gut]].
-
-Ich bin übrigens nur ein [[WP:Bots|Bot]]. Wenn ich nicht richtig funktioniere, sag bitte [[Benutzer Diskussion:DerIch27|DerIch27]] bescheid. Wenn du nicht mehr von mir benachrichtigt werden möchtest, kannst du dich auf [[Benutzer:Xqbot/Opt-out:LD-Hinweis|dieser]] oder [[Benutzer:DerIchBot/Opt-Out Liste|dieser Liste]] eintragen.
-
-Freundliche Grüsse  --~~~~"""
+Vielleicht fühlst du dich durch den Löschantrag vor den Kopf gestoßen, weil durch den Antrag die Arbeit, die Du in den Artikel gesteckt hast, nicht gewürdigt wird. [[WP:Sei tapfer|Sei tapfer]] und [[Wikipedia:Wikiquette|bleibe dennoch freundlich]]. Der andere meint es [[WP:Geh von guten Absichten aus|vermutlich auch gut]].""", ['Benutzer:Xqbot/Opt-out:LD-Hinweis'])
         
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s - %(levelname)s - DEBUGGING - %(message)s', level=logging.DEBUG)

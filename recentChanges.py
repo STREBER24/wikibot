@@ -41,13 +41,10 @@ class LagMonitor:
             self.minLag = 9999999999999999
 
 def monitorRecentChanges():
-    allProblems = citeParamChecker.loadAllProblems()
     site = pywikibot.Site('de', 'wikipedia')
     stream = eventstreams.EventStreams(streams='recentchange')
     site.login()
     stream.register_filter(type='edit', wiki='dewiki')
-    numberOfChanges = 0
-    numberOfProblemsBefore = len(allProblems)
     lagMonitor = LagMonitor()
     while True:
         try:
@@ -61,19 +58,7 @@ def monitorRecentChanges():
                 if re.match('^Wikipedia:WikiProjekt Kategorien/Diskussionen/[0-9]{4}/(Januar|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember)/[0-9][0-9]?$', change['title']):
                     katdisk.handleKatDiscussionUpdate(site, change['title'])
             elif change['namespace'] == 0: # Artikelnamensraum
-                if len(allProblems) >= 300:
-                    if utils.checkLastUpdate('check-problems-list-full', 90):
-                        citeParamChecker.checkPagesInProblemList()
-                        allProblems = citeParamChecker.loadAllProblems()
-                else:
-                    numberOfChanges += 1
-                    allProblems = citeParamChecker.loadAllProblems()
-                    allProblems += citeParamChecker.checkPage(site, change['title'], allProblems)
-                    citeParamChecker.dumpAllProblems(allProblems)
-                    if numberOfChanges >= 100:
-                        logging.info(f'Checked 100 changes and found {len(allProblems)-numberOfProblemsBefore} problems.')
-                        numberOfProblemsBefore = len(allProblems)
-                        numberOfChanges = 0
+                citeParamChecker.checkPagefromRecentChanges(site, change['title'])
         except Exception as e:
             e.add_note(f'failed while handling recent change {change.get('revision')} on {change.get('title')}')
             raise e
