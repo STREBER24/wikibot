@@ -42,6 +42,8 @@ def alarmOnChange(change: dict):
         return True
     if change['user'] == 'TaxonBot' and re.match('^Bot: [1-9][0-9]? Abschnitte? nach \\[\\[Benutzer(in)? Diskussion:.*\\]\\] archiviert – letzte Bearbeitung: \\[\\[user:DerIchBot|DerIchBot\\]\\] \\(.*\\)$', change['comment']):
         return False
+    if change['user'] == 'SpBot' and re.match('^Archiviere [1-9][0-9]? Abschnitt(.)* - letzte Bearbeitung: \\[\\[:User:DerIchBot|DerIchBot\\]\\],', change['comment']):
+        return False
     if change['user'] == 'DerIchBot':
         return False
     if 'DerIchBot' in change['comment']:
