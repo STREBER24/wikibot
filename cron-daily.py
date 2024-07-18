@@ -6,11 +6,16 @@ import pywikibot
 import telegram
 import logging
 import optOut
+import os
 
 if __name__ == '__main__':
     try:
         logging.basicConfig(format='%(asctime)s - %(levelname)s - DAILY - %(message)s', level=logging.INFO)
         telegram.send('Start daily routine ...', silent=True)
+        
+        if os.system('systemctl is-active --quiet recent-changes') != 0:
+            telegram.send('WARNING: recent changes service is not running')
+        
         site = pywikibot.Site('de', 'wikipedia')
         
         print('\n======== SPEEDCUBING ========')
