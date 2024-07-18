@@ -256,8 +256,8 @@ def checkPagefromRecentChanges(site: Any, pagetitle: str):
             futureWarnings: list[str] = utils.loadJson('data/futureWarningsPlanned.json', [])
             if problem.titel not in futureWarnings: futureWarnings.append(problem.titel)
             utils.dumpJson('data/futureWarningsPlanned.json', futureWarnings)
-    if len(allProblems) <= 300:
-        allProblems += newProblems
+        if len(allProblems) < 300 and problem not in allProblems:
+            allProblems.append(problem)
     dumpAllProblems(allProblems)
     if numberOfChanges >= 200:
         logging.info(f'Checked 200 changes and found {numberOfNewProblems} new problems.')
