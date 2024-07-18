@@ -229,7 +229,7 @@ def updateWikilist():
             wikitext += f'== {utils.formatDateFromDatestring(problem.foundDate)} ==\n\n'
         if titel != problem.titel or datum != problem.foundDate:
             wikitext += '{{Überschriftensimulation|3|Text=[[' + problem.titel + ']]}}\n'
-        wikitext += f'{problem.problemtyp}{'' if problem.revision==None else f' ([[Spezial:Diff/{problem.revision}|Änderung]])'}\n'
+        wikitext += f'{problem.problemtyp}{'' if problem.revision==None else f' ([[Spezial:Diff/{problem.revision}|Änderung]]{'' if problem.freshVersion else ' ???'})'}\n'
         wikitext += f'<pre>{problem.snippet}</pre>\n\n'
         datum = problem.foundDate
         titel = problem.titel
@@ -256,7 +256,7 @@ def checkPagefromRecentChanges(site: Any, pagetitle: str):
             futureWarnings: list[str] = utils.loadJson('data/futureWarningsPlanned.json', [])
             if problem.titel not in futureWarnings: futureWarnings.append(problem.titel)
             utils.dumpJson('data/futureWarningsPlanned.json', futureWarnings)
-    if len(allProblems) <= 200:
+    if len(allProblems) <= 300:
         allProblems += newProblems
     dumpAllProblems(allProblems)
     if numberOfChanges >= 200:
