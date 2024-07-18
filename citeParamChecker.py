@@ -223,7 +223,7 @@ def updateWikilist():
     allProblems = loadAllProblems()
     datum = None
     titel = None
-    wikitext = '{{/Info|' + str(len(allProblems)) + '}}\n\n'
+    wikitext = '{{/Info|' + str(len(allProblems)) + '|' + getTodayString() + '}}\n\n'
     for problem in allProblems:
         if datum != problem.foundDate:
             wikitext += f'== {utils.formatDateFromDatestring(problem.foundDate)} ==\n\n'
