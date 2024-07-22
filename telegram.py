@@ -7,6 +7,7 @@ import time
 import re
 import os
 
+
 dotenv.load_dotenv(dotenv_path='.env.local')
 DISABLED = utils.getBoolEnv('TELEGRAM_DISABLED', False)
 TARGET_USER = os.getenv('TELEGRAM_TARGET_USER')
@@ -51,7 +52,7 @@ def alarmOnChange(change: dict):
     def notify(msg: str):
         logging.warning(change)
         outstandingNotifications.append(f'{msg} ({difflink(change)})')
-    if re.match('Bot: Benachrichtigung über Löschdiskussion zum Artikel', change['comment']):
+    if utils.getBoolEnv('DELETION_NOTIFICATION_ENABLED', True) and re.match('Bot: Benachrichtigung über Löschdiskussion zum Artikel', change['comment']):
         notify('XqBot aktiv')
         return True
     if change['user'] == 'TaxonBot' and re.match('^Bot: [1-9][0-9]? Abschnitte? nach \\[\\[Benutzer(in)? Diskussion:.*\\]\\] archiviert – letzte Bearbeitung: \\[\\[user:DerIchBot|DerIchBot\\]\\] \\(.*\\)$', change['comment']):

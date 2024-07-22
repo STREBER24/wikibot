@@ -4,18 +4,23 @@ import deletionToKatdisk
 import citeParamChecker
 import pywikibot
 import logging
+import dotenv
 import utils
 import time
 import re
+
+dotenv.load_dotenv(dotenv_path='.env.local')
 
 def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change: dict|None = None):
     assert re.match('^Wikipedia:Löschkandidaten/.', titel)
     date = citeParamChecker.parseWeirdDateFormats(titel[26:])
     if date is None or date is False or date < '2024-04-06': return
-    logs: dict[str, dict[str,dict]] = utils.loadJson(f'data/deletionInfo/{date}.json', {})
     deletionDiskPage = pywikibot.Page(site, titel) 
     if deletionToKatdisk.moveKatDiskFromDeletionDisk(site, deletionDiskPage, date, change):
         return handleDeletionDiscussionUpdate(site, titel, change)
+    logs: dict[str, dict[str,dict]] = utils.loadJson(f'data/deletionInfo/{date}.json', {})
+    if utils.getBoolEnv('DELETION_NOTIFICATION_ENABLED', True):
+        logging.info('skip handling deletion discussion because disabled in .env')
     parsedDeletionDisk = parseDeletionDisk(deletionDiskPage)
     for pagetitle, userlinks in parsedDeletionDisk.items():
         try:
@@ -47,6 +52,8 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change
 
 NOTIFICATION_DELAY = 60*15 # 15min
 def sendDeletionNotifications(site, date: str=datetime.now().strftime('%Y-%m-%d')):
+    if utils.getBoolEnv('DELETION_NOTIFICATION_ENABLED', True):
+        logging.info('skip sending deletion notifications because disabled in .env')
     logs: dict[str, dict[str,dict]] = utils.loadJson(f'data/deletionInfo/{date}.json', {})
     deletionDiskTitle = 'Wikipedia:Löschkandidaten/' + utils.formatDate(int(date[8:10]), date[5:7], date[0:4])
     deletionDiskPage = pywikibot.Page(site, deletionDiskTitle)
