@@ -273,7 +273,11 @@ def sendPlannedNotifications(site):
     outgoingNotifications: dict[str, set[str]] = {}
     for pagetitle in plannedNotifications:
         logging.info(f'check page "{pagetitle}" to notifications on cite param problems ...')
-        timeSinceLastRevision = (time.time() - pywikibot.Page(site, pagetitle).latest_revision['timestamp'].timestamp()) / 3600
+        try:
+            timeSinceLastRevision: float = (time.time() - pywikibot.Page(site, pagetitle).latest_revision['timestamp'].timestamp()) / 3600
+        except pywikibot.exceptions.NoPageError:
+            logging.info(f'page "{pagetitle}" does not exist')
+            continue
         logging.debug(f'time since latest revision on {pagetitle}: {timeSinceLastRevision:.2f}h')
         if timeSinceLastRevision < 6:
             logging.info(f'skip problem notification on "{pagetitle}" because latest revision is too new')
