@@ -10,3 +10,4 @@ types-beautifulsoup4
 flask
 pytz
 types-pytz
+python-dotenv

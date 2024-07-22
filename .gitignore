@@ -7,6 +7,6 @@ throttle.ctrl
 data
 logs
 user-password.py
-telegramconfig.py
+.env.local
 env
 .vscode

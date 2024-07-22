@@ -1,16 +1,29 @@
-import telegramconfig
 import traceback
 import requests
 import logging
+import dotenv
 import time
 import re
+import os
+
+dotenv.load_dotenv(dotenv_path='.env.local')
+DISABLED = os.getenv('TELEGRAM_DISABLED', 'False')
+TARGET_USER = os.getenv('TELEGRAM_TARGET_USER')
+ACCESS_TOKEN = os.getenv('TELEGRAM_ACCESS_TOKEN')
+if DISABLED is None:
+    logging.info('telegram notifications are disabled')
+elif TARGET_USER is None or ACCESS_TOKEN is None:
+    logging.error('telegram credentials are not set in .env')
+    raise Exception('telegram credentials are not set in .env')
+
 
 def send(message: str, silent: bool=False):
+    if DISABLED: logging.info('telegram is disabled. skip notification:\n' + message); return
     maxLogLength = 50
     logmessage = message.replace('\n', ' ↵ ')
     logging.info(f'Send telegram message: {logmessage[:maxLogLength]}{'...' if len(logmessage)>maxLogLength else ''}')
-    url = f'https://api.telegram.org/bot'+telegramconfig.accessToken+'/sendMessage'
-    result = requests.post(url, {'chat_id': telegramconfig.targetUser, 'text': message, 'disable_notification': silent, 'parse_mode': 'Markdown'})
+    url = f'https://api.telegram.org/bot{ACCESS_TOKEN}/sendMessage'
+    result = requests.post(url, {'chat_id': TARGET_USER, 'text': message, 'disable_notification': silent, 'parse_mode': 'Markdown'})
     if not result.ok: logging.error(f'sending telegram message failed with status {result.status_code}')
     return result.ok
 
@@ -55,5 +68,7 @@ def alarmOnChange(change: dict):
         notify('Beobachtete Seite bearbeitet.')
         return True
 
+
 if __name__ == '__main__':
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - TELEGRAM - %(message)s', level=logging.DEBUG)
     send('TEST')
