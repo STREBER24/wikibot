@@ -2,15 +2,16 @@ import traceback
 import requests
 import logging
 import dotenv
+import utils
 import time
 import re
 import os
 
 dotenv.load_dotenv(dotenv_path='.env.local')
-DISABLED = os.getenv('TELEGRAM_DISABLED', 'False')
+DISABLED = utils.getBoolEnv('TELEGRAM_DISABLED', False)
 TARGET_USER = os.getenv('TELEGRAM_TARGET_USER')
 ACCESS_TOKEN = os.getenv('TELEGRAM_ACCESS_TOKEN')
-if DISABLED is None:
+if DISABLED:
     logging.info('telegram notifications are disabled')
 elif TARGET_USER is None or ACCESS_TOKEN is None:
     logging.error('telegram credentials are not set in .env')

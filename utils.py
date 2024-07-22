@@ -11,6 +11,12 @@ import io
 import os
 import re
 
+def getBoolEnv(key: str, default: bool):
+    value = os.getenv(key)
+    if value is None: return default
+    return {'true': True, '1': True, 
+            'false': False, '0': False}.get(value.lower(), default)
+
 def getText(tag: bs4.Tag | str | None) -> str:
     if type(tag) is bs4.Tag: 
         text = tag.text
