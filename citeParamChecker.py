@@ -43,6 +43,8 @@ def parseWeirdDateFormats(date: str|None):
             return date.split(' ')[2] + '-' + str(parseMonthDict[date.split(' ')[1]]).rjust(2,'0') + '-' + date.split(' ')[0].rjust(2,'0')
         if re.match('^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December) [0-9][0-9]?, [0-9]{4}$', date):
             return date.split(', ')[1] + '-' + str(parseMonthDict[date.split(' ')[0]]).rjust(2,'0') + '-' + date.split(', ')[0].split(' ')[1].rjust(2,'0')
+        if re.match('^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December) [0-9]{4}$', date):
+            return date.split(' ')[1] + '-' + str(parseMonthDict[date.split(' ')[0]]).rjust(2,'0')
         return False
     except Exception as e:
         e.add_note(f'failed while parsing weird date "{date}"')
