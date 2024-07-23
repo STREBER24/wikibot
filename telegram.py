@@ -41,7 +41,11 @@ def difflink(change: dict):
 
 outstandingNotifications: list[str] = []
 lastSentNotification: float = 0
+lastXqbotDeletionNotification = time.time()
+xqbotInactive = False
 def alarmOnChange(change: dict):
+    global lastXqbotDeletionNotification
+    global xqbotInactive
     global outstandingNotifications
     global lastSentNotification
     if outstandingNotifications != [] and lastSentNotification + 60*60*3 < time.time():
@@ -52,9 +56,14 @@ def alarmOnChange(change: dict):
     def notify(msg: str):
         logging.warning(change)
         outstandingNotifications.append(f'{msg} ({difflink(change)})')
-    if utils.getBoolEnv('DELETION_NOTIFICATION_ENABLED', True) and re.match('Bot: Benachrichtigung über Löschdiskussion zum Artikel', change['comment']):
-        notify('XqBot aktiv')
-        return True
+    if not xqbotInactive and time.time() - lastXqbotDeletionNotification > 60*60*24:
+        xqbotInactive = True
+        notify('xqbot inaktiv für 24h')
+    if re.match('Bot: Benachrichtigung über Löschdiskussion zum Artikel', change['comment']):
+        lastXqbotDeletionNotification = time.time()
+        if xqbotInactive or utils.getBoolEnv('DELETION_NOTIFICATION_ENABLED', True):
+            notify('XqBot aktiv')
+            return True
     if change['user'] == 'TaxonBot' and re.match('^Bot: [1-9][0-9]? Abschnitte? nach \\[\\[Benutzer(in)? Diskussion:.*\\]\\] archiviert – letzte Bearbeitung: \\[\\[user:DerIchBot|DerIchBot\\]\\] \\(.*\\)$', change['comment']):
         return False
     if change['user'] == 'SpBot' and re.match('^Archiviere [1-9][0-9]? Abschnitt(.)* - letzte Bearbeitung: \\[\\[:User:DerIchBot|DerIchBot\\]\\],', change['comment']):
