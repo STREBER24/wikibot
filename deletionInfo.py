@@ -21,6 +21,7 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change
     logs: dict[str, dict[str,dict]] = utils.loadJson(f'data/deletionInfo/{date}.json', {})
     if not utils.getBoolEnv('DELETION_NOTIFICATION_ENABLED', True):
         logging.info('skip handling deletion discussion because disabled in .env')
+        return
     parsedDeletionDisk = parseDeletionDisk(deletionDiskPage)
     for pagetitle, userlinks in parsedDeletionDisk.items():
         try:
@@ -54,6 +55,7 @@ NOTIFICATION_DELAY = 60*15 # 15min
 def sendDeletionNotifications(site, date: str=datetime.now().strftime('%Y-%m-%d')):
     if not utils.getBoolEnv('DELETION_NOTIFICATION_ENABLED', True):
         logging.info('skip sending deletion notifications because disabled in .env')
+        return
     logs: dict[str, dict[str,dict]] = utils.loadJson(f'data/deletionInfo/{date}.json', {})
     deletionDiskTitle = 'Wikipedia:Löschkandidaten/' + utils.formatDate(int(date[8:10]), date[5:7], date[0:4])
     deletionDiskPage = pywikibot.Page(site, deletionDiskTitle)
