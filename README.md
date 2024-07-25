@@ -15,9 +15,9 @@ DATA_FOLDER = /home/wikibot/data
 Ergänze weiter mit `crontab -e` folgende Cronjobs:
 
 ```
-0 2 * * * cd /home/wikibot && .venv/bin/python/src cron-daily.py >> ../logs/daily.log 2>>../logs/daily.log
-0 * * * * cd /home/wikibot && .venv/bin/python/src cron-hourly.py >> ../logs/hourly.log 2>>../logs/hourly.log
-*/15 * * * * cd /home/wikibot && .venv/bin/python/src monitoring.py 2>> ../logs/monitoring.log
+0 2 * * * cd /home/wikibot && .venv/bin/python src/cron-daily.py >> ../logs/daily.log 2>>../logs/daily.log
+0 * * * * cd /home/wikibot && .venv/bin/python src/cron-hourly.py >> ../logs/hourly.log 2>>../logs/hourly.log
+*/15 * * * * cd /home/wikibot && .venv/bin/python src/monitoring.py 2>> ../logs/monitoring.log
 ```
 
 Ergänze außerdem Dateien der Form `/etc/systemd/system/<...>.service` für `webserver.py` und `recentChanges.py` und registriere die Services mit `systemctl enable <...>`:
@@ -27,7 +27,7 @@ Description=<...>
 After=network.target
 
 [Service]
-WorkingDirectory=/home/wikibot/src
+WorkingDirectory=/home/wikibot
 ExecStart=/home/wikibot/.venv/bin/python /home/wikibot/src/<...>.py
 Restart=on-abnormal
 StandardOutput=append:/home/wikibot/logs/<...>.log

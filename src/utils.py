@@ -86,15 +86,17 @@ def ensureDir(file: str):
 
 T = TypeVar("T")
 def loadJson(path: str, defaultValue: T) -> T:
+    path = f'{os.getenv('DATA_FOLDER', 'data')}/{path}'
     try:
-        with io.open(f'{os.getenv('DATA_FOLDER', 'data')}/{path}', encoding='utf8') as file:
+        with io.open(path, encoding='utf8') as file:
             return json.load(file)
     except FileNotFoundError:
         return defaultValue
 
 def dumpJson(path: str, content):
+    path = f'{os.getenv('DATA_FOLDER', 'data')}/{path}'
     ensureDir(path)
-    with io.open(f'{os.getenv('DATA_FOLDER', 'data')}/{path}', 'w', encoding='utf8') as file:
+    with io.open(path, 'w', encoding='utf8') as file:
         json.dump(content, file, indent=2, ensure_ascii=False)
 
 def savePage(page: pywikibot.Page, summary: str, botflag: bool):
