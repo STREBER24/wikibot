@@ -1,7 +1,7 @@
 from datetime import datetime
 import wikitextparser as wtp
 import deletionToKatdisk
-import src.citeParamChecker as citeParamChecker
+import citeParamChecker
 import pywikibot
 import logging
 import dotenv

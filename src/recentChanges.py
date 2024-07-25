@@ -1,5 +1,5 @@
 from pywikibot.comms import eventstreams
-import src.citeParamChecker as citeParamChecker
+import citeParamChecker
 import deletionInfo
 import pywikibot
 import telegram

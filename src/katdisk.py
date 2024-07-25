@@ -1,6 +1,6 @@
 import wikitextparser as wtp
 from typing import Literal
-import src.citeParamChecker as citeParamChecker
+import citeParamChecker
 import pywikibot
 import logging
 import utils
