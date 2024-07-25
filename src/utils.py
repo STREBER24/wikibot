@@ -12,7 +12,7 @@ import io
 import os
 import re
 
-dotenv.load_dotenv(dotenv_path='.env.local')
+dotenv.load_dotenv()
 
 def getBoolEnv(key: str, default: bool):
     value = os.getenv(key)

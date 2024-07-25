@@ -3,7 +3,16 @@
 Dieses Repository beinhaltet den Code zum Betrieb des Wikipedia-Bots [DerIchBot](https://de.wikipedia.org/wiki/Benutzer:DerIchBot).
 
 ## Setup
-Installiere Pakete mit `pip install -r ./requirements.txt` und ergänze die Konfigurationsdateien `.env.local` und `user-password.py` und ergänze mit `crontab -e` folgende Cronjobs:
+Installiere Pakete mit `pip install -r ./requirements.txt` und ergänze die Konfigurationsdatei `user-password.py` sowie eine `.env` mit folgenden Umgebungsvariablen:
+```
+TELEGRAM_TARGET_USER = ...
+TELEGRAM_ACCESS_TOKEN = ...
+TELEGRAM_DISABLED = 0
+DELETION_NOTIFICATION_ENABLED = 1
+DATA_FOLDER = /home/wikibot/data
+``` 
+
+Ergänze weiter mit `crontab -e` folgende Cronjobs:
 
 ```
 0 2 * * * cd /home/wikibot && .venv/bin/python/src cron-daily.py >> ../logs/daily.log 2>>../logs/daily.log

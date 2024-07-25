@@ -8,7 +8,7 @@ import re
 import os
 
 
-dotenv.load_dotenv(dotenv_path='.env.local')
+dotenv.load_dotenv()
 DISABLED = utils.getBoolEnv('TELEGRAM_DISABLED', False)
 TARGET_USER = os.getenv('TELEGRAM_TARGET_USER')
 ACCESS_TOKEN = os.getenv('TELEGRAM_ACCESS_TOKEN')

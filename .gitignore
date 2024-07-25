@@ -7,6 +7,6 @@ throttle.ctrl
 data
 logs
 user-password.py
-.env.local
+.env
 env
 .vscode

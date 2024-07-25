@@ -9,7 +9,7 @@ import utils
 import time
 import re
 
-dotenv.load_dotenv(dotenv_path='.env.local')
+dotenv.load_dotenv()
 
 def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change: dict|None = None):
     assert re.match('^Wikipedia:Löschkandidaten/.', titel)
