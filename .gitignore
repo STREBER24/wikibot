@@ -6,7 +6,7 @@ throttle.ctrl
 *.tmp
 data
 logs
-user-password.py
+*/user-password.py
 .env
 env
 .vscode
