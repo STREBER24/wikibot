@@ -32,7 +32,8 @@ def send(message: str, silent: bool=False):
 
 def handleException():
     logging.error(traceback.format_exc())
-    send('Mimimi, du hast Müll gebaut, deshalb stürze ich jetzt ab:\n\n' + traceback.format_exc())
+    if not send('Mimimi, du hast Müll gebaut, deshalb stürze ich jetzt ab:\n\n' + traceback.format_exc()):
+        send('FAILED')
     
 
 def difflink(change: dict):
