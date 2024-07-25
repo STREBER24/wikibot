@@ -111,7 +111,7 @@ def isBlockedForInfinity(site, username: str):
     return False
 
 def extractUserLinks(sec: wtp.Section):
-    return set([':'.join(link.target.split(':')[1:]) for link in sec.wikilinks if re.match('^(benutzer|benutzer diskussion|bd|user|user talk):', link.target.lower())]+
+    return set([':'.join(link.target.split(':')[1:]) for link in sec.wikilinks if re.match('^(benutzer|benutzer diskussion|bd|user|user talk|benutzerin|benutzerin diskussion):', link.target.lower())]+
                [findTemplateArg(template, '1') for template in sec.templates if template.name.strip().lower() == 'ping'])
 
 ipRegex = re.compile('^(((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])|((([0-9a-fA-F]){1,4})\\:){7}([0-9a-fA-F]){1,4})$') 
