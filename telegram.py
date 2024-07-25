@@ -57,9 +57,10 @@ def alarmOnChange(change: dict):
     def notify(msg: str):
         logging.warning(change)
         outstandingNotifications.append(f'{msg} ({difflink(change)})')
-    if not xqbotInactive and time.time() - lastXqbotDeletionNotification > 60*60*24:
+    XQBOT_INACTIVITY_NOTIFICATION_DELAY = 12
+    if not xqbotInactive and time.time() - lastXqbotDeletionNotification > 60*60*XQBOT_INACTIVITY_NOTIFICATION_DELAY:
         xqbotInactive = True
-        notify('xqbot inaktiv für 24h')
+        outstandingNotifications.append(f'xqbot inaktiv für {XQBOT_INACTIVITY_NOTIFICATION_DELAY}h')
     if re.match('Bot: Benachrichtigung über Löschdiskussion zum Artikel', change['comment']):
         lastXqbotDeletionNotification = time.time()
         if xqbotInactive or utils.getBoolEnv('DELETION_NOTIFICATION_ENABLED', True):
@@ -83,4 +84,4 @@ def alarmOnChange(change: dict):
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s - %(levelname)s - TELEGRAM - %(message)s', level=logging.DEBUG)
-    send('TEST')
+    send('Bahnstrecke Ringsted–Rødby F�rge')
