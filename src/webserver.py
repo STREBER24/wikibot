@@ -1,4 +1,4 @@
-import citeParamChecker
+import src.citeParamChecker as citeParamChecker
 import pywikibot
 import traceback
 import telegram

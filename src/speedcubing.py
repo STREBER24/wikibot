@@ -133,8 +133,8 @@ def scrape():
     
 def run():
     newData = scrape()
-    oldData: dict[str, tuple] = utils.loadJson('data/speedcubing.json', {})
-    utils.dumpJson('data/speedcubing.json', newData)
+    oldData: dict[str, tuple] = utils.loadJson('speedcubing.json', {})
+    utils.dumpJson('speedcubing.json', newData)
     changedDisciplines = [i for i in disciplines.keys() if json.dumps(oldData.get(disciplines[i]), ensure_ascii=False) != json.dumps(newData.get(disciplines.get(i)), ensure_ascii=False)]
     changes = changedDisciplines != []
     if not changes:

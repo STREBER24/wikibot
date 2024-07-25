@@ -131,12 +131,12 @@ class Problem(dict):
         return {'titel': self.titel, 'problemtyp': self.problemtyp, 'snippet': self.snippet, 'foundDate': self.foundDate, 'revision': self.revision, 'freshVersion': self.freshVersion, 'assets': self.assets, 'user': self.user}
 
 def loadAllProblems() -> list[Problem]:
-    content: list[dict] = utils.loadJson('data/problems.json', [])
+    content: list[dict] = utils.loadJson('problems.json', [])
     return  [Problem(dictionary=problem) for problem in content]
 
 def dumpAllProblems(allProblems: list[Problem]):
     content = [problem.toDict() for problem in allProblems]
-    utils.dumpJson('data/problems.json', content)
+    utils.dumpJson('problems.json', content)
 
 def checkPageContent(titel: str, content: str, todayString: str):
     for template in wtp.parse(content).templates:
@@ -255,9 +255,9 @@ def checkPagefromRecentChanges(site: Any, pagetitle: str):
     for problem in newProblems:
         numberOfNewProblems += 1
         if re.match('Parameter (datum|abruf/zugriff) liegt in der Zukunft\\.', problem.problemtyp) and problem.freshVersion:
-            futureWarnings: list[str] = utils.loadJson('data/futureWarningsPlanned.json', [])
+            futureWarnings: list[str] = utils.loadJson('futureWarningsPlanned.json', [])
             if problem.titel not in futureWarnings: futureWarnings.append(problem.titel)
-            utils.dumpJson('data/futureWarningsPlanned.json', futureWarnings)
+            utils.dumpJson('futureWarningsPlanned.json', futureWarnings)
         if len(allProblems) < 300 and problem not in allProblems:
             allProblems.append(problem)
     dumpAllProblems(allProblems)
@@ -267,8 +267,8 @@ def checkPagefromRecentChanges(site: Any, pagetitle: str):
         numberOfChanges = 0
 
 def sendPlannedNotifications(site):
-    plannedNotifications: list[str] = utils.loadJson('data/futureWarningsPlanned.json', [])
-    sentNotifications: dict[str, dict[str, str]] = utils.loadJson('data/futureWarningsSent.json', {})
+    plannedNotifications: list[str] = utils.loadJson('futureWarningsPlanned.json', [])
+    sentNotifications: dict[str, dict[str, str]] = utils.loadJson('futureWarningsSent.json', {})
     skippedNotifications: set[str] = set()
     outgoingNotifications: dict[str, set[str]] = {}
     for pagetitle in plannedNotifications:
@@ -305,8 +305,8 @@ def sendPlannedNotifications(site):
             logging.info(f'Notify {user} about cite param problem')
         else:
             logging.info(f'do not notify {user} because saving failed')
-    utils.dumpJson('data/futureWarningsPlanned.json', list(skippedNotifications))
-    utils.dumpJson('data/futureWarningsSent.json', sentNotifications)
+    utils.dumpJson('futureWarningsPlanned.json', list(skippedNotifications))
+    utils.dumpJson('futureWarningsSent.json', sentNotifications)
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s - %(levelname)s - CITE PARAMS - %(message)s', level=logging.DEBUG)

@@ -1,5 +1,5 @@
 from datetime import datetime
-import citeParamChecker
+import src.citeParamChecker as citeParamChecker
 import speedcubing
 import edelmetalle
 import pywikibot

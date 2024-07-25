@@ -40,7 +40,7 @@ def moveKatDiskFromDeletionDisk(site: Any, deletionDiskPage: pywikibot.Page, dat
     engage = force or (change is not None and re.match('/\\* Kategorie:(.)* \\*/', change['comment']))
     wrongKats, rest = extractFromDeletionDisk(deletionDiskPage.text)
     if wrongKats != '': 
-        moveHistory: dict[str, dict] = utils.loadJson('data/moveHistory.json', {})
+        moveHistory: dict[str, dict] = utils.loadJson('moveHistory.json', {})
         logging.debug(f'wrong kats hash: {hash(wrongKats)}')
         if str(hash(wrongKats)) in moveHistory:
             if force:
@@ -53,7 +53,7 @@ def moveKatDiskFromDeletionDisk(site: Any, deletionDiskPage: pywikibot.Page, dat
                                                  'timestamp': change['timestamp'], 
                                                  'timestring': datetime.fromtimestamp(change['timestamp']).strftime('%d.%m.%Y %H:%M'), 
                                                  'diff': change['revision']['new']}
-            utils.dumpJson('data/moveHistory.json', moveHistory)
+            utils.dumpJson('moveHistory.json', moveHistory)
         if not engage:
             telegram.send(f'Falscher Eintrag in {deletionDiskPage.title()}{'' if change is None else f' ({telegram.difflink(change)})'}')
         logging.info('Verschiebe Eintrag von Löschdiskussionsseite nach WikiProjekt Kategorien')

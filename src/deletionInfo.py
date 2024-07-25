@@ -1,7 +1,7 @@
 from datetime import datetime
 import wikitextparser as wtp
 import deletionToKatdisk
-import citeParamChecker
+import src.citeParamChecker as citeParamChecker
 import pywikibot
 import logging
 import dotenv
@@ -18,7 +18,7 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change
     deletionDiskPage = pywikibot.Page(site, titel) 
     if deletionToKatdisk.moveKatDiskFromDeletionDisk(site, deletionDiskPage, date, change):
         return handleDeletionDiscussionUpdate(site, titel, change)
-    logs: dict[str, dict[str,dict]] = utils.loadJson(f'data/deletionInfo/{date}.json', {})
+    logs: dict[str, dict[str,dict]] = utils.loadJson(f'deletionInfo/{date}.json', {})
     if not utils.getBoolEnv('DELETION_NOTIFICATION_ENABLED', True):
         logging.info('skip handling deletion discussion because disabled in .env')
         return
@@ -40,12 +40,12 @@ def handleDeletionDiscussionUpdate(site: pywikibot._BaseSite, titel: str, change
                 if not mainAuthors[author]['major']: continue
                 if re.match(utils.ipRegex, author): logging.info(f'do not notify {author} because he is ip'); continue
                 if author in userlinks: logging.info(f'do not notify {author} because already on deletion disk'); continue
-                if author in utils.loadJson('data/opt-out-ld.json', []): logging.info(f'do not notify {author} because of opt out'); continue
+                if author in utils.loadJson('opt-out-ld.json', []): logging.info(f'do not notify {author} because of opt out'); continue
                 if utils.isBlockedForInfinity(site, author): logging.info(f'do not notify {author} because he is blocked'); continue
                 mainAuthors[author]['notified'] = int(time.time())
                 logging.info(f'planned notification of {author}')
             logs[pagetitle] = dict(sortMainAuthors(mainAuthors)[-5:])
-            utils.dumpJson(f'data/deletionInfo/{date}.json', logs)
+            utils.dumpJson(f'deletionInfo/{date}.json', logs)
         except Exception as e:
             e.add_note(f'failed while checking page {pagetitle} on deletion disk')
             raise e
@@ -56,7 +56,7 @@ def sendDeletionNotifications(site, date: str=datetime.now().strftime('%Y-%m-%d'
     if not utils.getBoolEnv('DELETION_NOTIFICATION_ENABLED', True):
         logging.info('skip sending deletion notifications because disabled in .env')
         return
-    logs: dict[str, dict[str,dict]] = utils.loadJson(f'data/deletionInfo/{date}.json', {})
+    logs: dict[str, dict[str,dict]] = utils.loadJson(f'deletionInfo/{date}.json', {})
     deletionDiskTitle = 'Wikipedia:Löschkandidaten/' + utils.formatDate(int(date[8:10]), date[5:7], date[0:4])
     deletionDiskPage = pywikibot.Page(site, deletionDiskTitle)
     parsedDeletionDisk: None|dict[str,dict] = None
@@ -96,7 +96,7 @@ def sendDeletionNotifications(site, date: str=datetime.now().strftime('%Y-%m-%d'
                 continue
             logs[pagetitle][author]['notified'] = True
             logging.info(f'Notify {author} about deletion disk of {pagetitle}')
-    utils.dumpJson(f'data/deletionInfo/{date}.json', logs)
+    utils.dumpJson(f'deletionInfo/{date}.json', logs)
 
 
 def parseDeletionDisk(page: pywikibot.Page):

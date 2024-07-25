@@ -8,7 +8,7 @@ def download():
     content = page.get()
     parsed = wtp.parse(content)
     pages = [link.target for link in parsed.wikilinks]
-    utils.dumpJson('data/opt-out.json', pages)
+    utils.dumpJson('opt-out.json', pages)
 
 def downloadXqBotList():
     site = pywikibot.Site('de', 'wikipedia')
@@ -16,10 +16,10 @@ def downloadXqBotList():
     content = page.get()
     parsed = wtp.parse(content)
     user = list(utils.extractUserLinks(parsed))
-    utils.dumpJson('data/opt-out-ld.json', user)
+    utils.dumpJson('opt-out-ld.json', user)
 
 def isAllowed(page: pywikibot.Page):
-    optOutList: list[str] = utils.loadJson('data/opt-out.json', [])
+    optOutList: list[str] = utils.loadJson('opt-out.json', [])
     if page.title() in optOutList: return False
     parsed = wtp.parse(page.text)
     for template in parsed.templates:

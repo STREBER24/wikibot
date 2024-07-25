@@ -4,12 +4,15 @@ from typing import Any, TypeVar
 import pywikibot
 import logging
 import optOut
+import dotenv
 import time
 import json
 import bs4
 import io
 import os
 import re
+
+dotenv.load_dotenv(dotenv_path='.env.local')
 
 def getBoolEnv(key: str, default: bool):
     value = os.getenv(key)
@@ -58,12 +61,12 @@ def findTemplateArg(template: wtp.Template, argName: str):
     return stripped if stripped != '' else None
 
 def checkLastUpdate(key: str, minDelayMinutes: int):
-    data: dict[str,int] = loadJson('data/last-updates.json', {})
+    data: dict[str,int] = loadJson('last-updates.json', {})
     lastUpdate = data.get(key)
     if type(lastUpdate) is int and lastUpdate > time.time() - (minDelayMinutes*60):
         return False
     data[key] = int(time.time())
-    dumpJson('data/last-updates.json', data)
+    dumpJson('last-updates.json', data)
     return True
 
 def addWikidataSource(repo: Any, claim: pywikibot.Claim,  url: str):
@@ -84,14 +87,14 @@ def ensureDir(file: str):
 T = TypeVar("T")
 def loadJson(path: str, defaultValue: T) -> T:
     try:
-        with io.open(path, encoding='utf8') as file:
+        with io.open(f'{os.getenv('DATA_FOLDER', 'data')}/{path}', encoding='utf8') as file:
             return json.load(file)
     except FileNotFoundError:
         return defaultValue
 
 def dumpJson(path: str, content):
     ensureDir(path)
-    with io.open(path, 'w', encoding='utf8') as file:
+    with io.open(f'{os.getenv('DATA_FOLDER', 'data')}/{path}', 'w', encoding='utf8') as file:
         json.dump(content, file, indent=2, ensure_ascii=False)
 
 def savePage(page: pywikibot.Page, summary: str, botflag: bool):
