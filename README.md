@@ -7,7 +7,7 @@ Installiere Pakete mit `pip install -r ./requirements.txt` und ergänze die Konf
 ```
 TELEGRAM_TARGET_USER = ...
 TELEGRAM_ACCESS_TOKEN = ...
-TELEGRAM_DISABLED = 0
+TELEGRAM_ENABLED = 0
 DELETION_NOTIFICATION_ENABLED = 1
 DATA_FOLDER = /home/wikibot/data
 ``` 
