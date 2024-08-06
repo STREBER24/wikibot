@@ -64,6 +64,7 @@ def alarmOnChange(change: dict):
     if re.match('Bot: Benachrichtigung über Löschdiskussion zum Artikel', change['comment']):
         lastXqbotDeletionNotification = time.time()
         if xqbotInactive or utils.getBoolEnv('DELETION_NOTIFICATION_ENABLED', True):
+            xqbotInactive = False
             notify('XqBot aktiv')
             return True
     if change['user'] == 'TaxonBot' and re.match('^Bot: [1-9][0-9]? Abschnitte? nach \\[\\[Benutzer(in)? Diskussion:.*\\]\\] archiviert – letzte Bearbeitung: \\[\\[user:DerIchBot|DerIchBot\\]\\] \\(.*\\)$', change['comment']):
