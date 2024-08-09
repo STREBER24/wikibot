@@ -177,7 +177,7 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
         e.add_note(f'failed while checking page {pagetitle}')
         if previousServerErrors <= 4:
             logging.warning(f'Ignored Server Error\n{traceback.format_exc()}')
-            telegram.send('WARNING: Ignored Server Error')
+            telegram.send('WARNING: Ignored Server Error', silent=True)
             return checkPage(site, pagetitle, allProblems, previousServerErrors+1)
         else:
             e.add_note(f'failed after {previousServerErrors+1} server errors')
@@ -207,7 +207,7 @@ def checkPagesInProblemList(site):
             previousServerErrors += 1
             if previousServerErrors <= 4:
                 logging.warning(f'Ignored Server Error\n{traceback.format_exc()}')
-                telegram.send('WARNING: Ignored Server Error')
+                telegram.send('WARNING: Ignored Server Error', silent=True)
                 continue
             else:
                 e.add_note(f'failed after {previousServerErrors+1} server errors')
