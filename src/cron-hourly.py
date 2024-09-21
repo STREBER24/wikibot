@@ -16,4 +16,4 @@ if __name__ == '__main__':
         logging.info(f'finished hourly routine')
     
     except Exception:
-        telegram.handleException()
+        telegram.handleException('HOURLY')

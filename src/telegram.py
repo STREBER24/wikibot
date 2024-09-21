@@ -30,10 +30,10 @@ def send(message: str, silent: bool=False):
     return result.ok
 
 
-def handleException():
+def handleException(tag: str):
     logging.error(traceback.format_exc())
-    if not send('Mimimi, du hast Müll gebaut, deshalb stürze ich jetzt ab:\n\n' + traceback.format_exc()):
-        send('FAILED')
+    if not send(f'FAILED [{tag}]\n\nMimimi, du hast Müll gebaut, deshalb stürze ich jetzt ab:\n\n' + traceback.format_exc()):
+        send(f'FAILED [{tag}]')
     
 
 def difflink(change: dict):

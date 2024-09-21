@@ -272,29 +272,33 @@ def sendPlannedNotifications(site):
     skippedNotifications: set[str] = set()
     outgoingNotifications: dict[str, set[str]] = {}
     for pagetitle in plannedNotifications:
-        logging.info(f'check page "{pagetitle}" to notifications on cite param problems ...')
         try:
-            timeSinceLastRevision: float = (time.time() - pywikibot.Page(site, pagetitle).latest_revision['timestamp'].timestamp()) / 3600
-        except pywikibot.exceptions.NoPageError:
-            logging.info(f'page "{pagetitle}" does not exist')
-            continue
-        logging.debug(f'time since latest revision on {pagetitle}: {timeSinceLastRevision:.2f}h')
-        if timeSinceLastRevision < 6:
-            logging.info(f'skip problem notification on "{pagetitle}" because latest revision is too new')
-            skippedNotifications.add(pagetitle)
-            continue
-        for problem in checkPage(site, pagetitle, []):
-            if not re.match('Parameter (datum|abruf/zugriff) liegt in der Zukunft\\.', problem.problemtyp): continue
-            if not problem.freshVersion: continue
-            if sentNotifications.get(problem.user) == None: sentNotifications[problem.user] = {}
-            if sentNotifications[problem.user].get(pagetitle) != None: 
-                logging.info(f'skip notification of {problem.user} on "{pagetitle}" because already notified on {sentNotifications[problem.user][pagetitle]}')
+            logging.info(f'check page "{pagetitle}" to notifications on cite param problems ...')
+            try:
+                timeSinceLastRevision: float = (time.time() - pywikibot.Page(site, pagetitle).latest_revision['timestamp'].timestamp()) / 3600
+            except pywikibot.exceptions.NoPageError:
+                logging.info(f'page "{pagetitle}" does not exist')
                 continue
-            logging.debug(problem.toDict())
-            if outgoingNotifications.get(problem.user) == None: outgoingNotifications[problem.user] = set()
-            datumstyp = 'Veröffentlichungsdatum' if problem.problemtyp.startswith('Parameter datum') else 'Abrufdatum'
-            outgoingNotifications[problem.user].add(f'Du hast mit [[Spezial:Diff/{problem.revision}|dieser Änderung]] auf [[{pagetitle}]] den {utils.formatDateFromDatestring(problem.assets)} als {datumstyp} angegeben. Da dieses Datum in der Zukunft liegt, möchte ich dich bitten, deine Änderung nochmal auf Tippfehler zu überprüfen.')
-            sentNotifications[problem.user][pagetitle] = getTodayString()
+            logging.debug(f'time since latest revision on {pagetitle}: {timeSinceLastRevision:.2f}h')
+            if timeSinceLastRevision < 6:
+                logging.info(f'skip problem notification on "{pagetitle}" because latest revision is too new')
+                skippedNotifications.add(pagetitle)
+                continue
+            for problem in checkPage(site, pagetitle, []):
+                if not re.match('Parameter (datum|abruf/zugriff) liegt in der Zukunft\\.', problem.problemtyp): continue
+                if not problem.freshVersion: continue
+                if sentNotifications.get(problem.user) == None: sentNotifications[problem.user] = {}
+                if sentNotifications[problem.user].get(pagetitle) != None: 
+                    logging.info(f'skip notification of {problem.user} on "{pagetitle}" because already notified on {sentNotifications[problem.user][pagetitle]}')
+                    continue
+                logging.debug(problem.toDict())
+                if outgoingNotifications.get(problem.user) == None: outgoingNotifications[problem.user] = set()
+                datumstyp = 'Veröffentlichungsdatum' if problem.problemtyp.startswith('Parameter datum') else 'Abrufdatum'
+                outgoingNotifications[problem.user].add(f'Du hast mit [[Spezial:Diff/{problem.revision}|dieser Änderung]] auf [[{pagetitle}]] den {utils.formatDateFromDatestring(problem.assets)} als {datumstyp} angegeben. Da dieses Datum in der Zukunft liegt, möchte ich dich bitten, deine Änderung nochmal auf Tippfehler zu überprüfen.')
+                sentNotifications[problem.user][pagetitle] = getTodayString()
+        except Exception as e:
+            e.add_note(f'failed while compiling notification on page "{pagetitle}"')
+            raise e
     for user, messages in outgoingNotifications.items():
         messageList = list(messages)
         messageList[0] = messageList[0][0].lower() + messageList[0][1:]

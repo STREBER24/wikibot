@@ -71,5 +71,5 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print('Exception: KeyboardInterrupt')
     except Exception as e:
-        telegram.handleException()
+        telegram.handleException('RECENT CHANGES')
             

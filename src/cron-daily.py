@@ -37,6 +37,5 @@ if __name__ == '__main__':
         telegram.send('Finished daily routine successfully ...', silent=True)
     
     except Exception:
-        print('[FAILED]')
-        telegram.handleException()
+        telegram.handleException('DAILY')
         

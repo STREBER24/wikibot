@@ -44,7 +44,7 @@ def number_of_problems():
 @app.errorhandler(500)
 def exception_handler(error):
     app.logger.error(f'STATUS 500\n\n{traceback.format_exc()}')
-    telegram.handleException()
+    telegram.handleException('WEBSERVER')
     return "Unerwarteter interner Fehler aufgetreten. Der Betreiber wurde bereits benachrichtigt.", 500
 
 if __name__=='__main__': 
