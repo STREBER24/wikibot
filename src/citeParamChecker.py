@@ -147,7 +147,7 @@ def checkPageContent(titel: str, content: str, todayString: str):
         if True != result: 
             yield Problem(titel, result, str(template), todayString)
 
-def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousServerErrors: int=0):
+def checkPage(site: Any, pagetitle: str, allProblems: list[Problem]):
     try:
         page = pywikibot.Page(site, pagetitle)
         content = page.get()
@@ -174,14 +174,8 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem], previousSer
     except pywikibot.exceptions.NoPageError:
         return
     except pywikibot.exceptions.ServerError as e:
-        e.add_note(f'failed while checking page {pagetitle}')
-        if previousServerErrors <= 4:
-            logging.warning(f'Ignored Server Error\n{traceback.format_exc()}')
-            telegram.send('WARNING: Ignored Server Error', silent=True)
-            return checkPage(site, pagetitle, allProblems, previousServerErrors+1)
-        else:
-            e.add_note(f'failed after {previousServerErrors+1} server errors')
-            raise e
+        telegram.handleServerError(e)
+        return checkPage(site, pagetitle, allProblems)
     except Exception as e:
         e.add_note(f'failed while checking page {pagetitle}')
         raise e
@@ -192,7 +186,6 @@ def checkPagesInProblemList(site):
     site.login()
     index = 0
     allPages = set()
-    previousServerErrors = 0
     while index < len(allProblems):
         problem = allProblems[index]
         allPages.add(problem.titel)
@@ -204,14 +197,8 @@ def checkPagesInProblemList(site):
             del allProblems[index]
             continue
         except pywikibot.exceptions.ServerError as e:
-            previousServerErrors += 1
-            if previousServerErrors <= 4:
-                logging.warning(f'Ignored Server Error\n{traceback.format_exc()}')
-                telegram.send('WARNING: Ignored Server Error', silent=True)
-                continue
-            else:
-                e.add_note(f'failed after {previousServerErrors+1} server errors')
-                raise e
+            telegram.handleServerError(e)
+            continue
         if problem in checkPageContent(problem.titel, content, problem.foundDate): 
             index += 1
         else:

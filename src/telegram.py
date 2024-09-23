@@ -36,6 +36,15 @@ def handleException(tag: str):
         send(f'FAILED [{tag}]')
     
 
+def handleServerError(e: Exception):
+    logging.warning(f'Ignored Server Error\n{traceback.format_exc()}')
+    if utils.checkLastUpdate('ignored-server-error', 60):
+        send('WARNING: Ignored Server Error', silent=True)
+    else:
+        e.add_note(f'failed on server error')
+        raise e
+    
+    
 def difflink(change: dict):
     return f'[Diff](https://de.wikipedia.org/wiki/Spezial:Diff/{change['revision']['new']})'
 

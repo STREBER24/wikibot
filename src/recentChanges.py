@@ -3,9 +3,9 @@ import citeParamChecker
 import deletionInfo
 import pywikibot
 import telegram
+import requests
 import logging
 import katdisk
-import utils
 import time
 import re
 
@@ -59,9 +59,13 @@ def monitorRecentChanges():
                     katdisk.handleKatDiscussionUpdate(site, change['title'])
             elif change['namespace'] == 0: # Artikelnamensraum
                 citeParamChecker.checkPagefromRecentChanges(site, change['title'])
+        except requests.exceptions.HTTPError as e:
+            telegram.handleServerError(e)
+            monitorRecentChanges()
         except Exception as e:
             e.add_note(f'failed while handling recent change {change.get('revision')} on {change.get('title')}')
             raise e
+
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s - %(levelname)s - RECENT CHANGES - %(message)s', level=logging.INFO)
