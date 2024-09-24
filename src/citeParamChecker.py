@@ -14,41 +14,61 @@ import re
 NOTIFICATION_PROBLEM_TYPES = '(Parameter (datum|abruf/zugriff)|Abrufdatum) liegt in der Zukunft\\.'
 
 
-parseMonthDict = {'Januar':1, 'Jänner':1, 'January':1, 'Jan':1,
-                  'Februar':2, 'February':2, 'Feb':2,
-                  'März':3, 'March':3, 'Mar':3,
-                  'April':4, 'Apr':4,
-                  'Mai':5, 'May':5,
-                  'Juni':6, 'June':6, 'Jun':6,
-                  'Juli':7, 'July':7, 'Jul':7,
-                  'August':8, 'Aug':8,
-                  'September':9, 'Sep':9,
-                  'Oktober':10, 'October':10, 'Oct':10,
-                  'November':11, 'Nov':11,
-                  'Dezember':12, 'December':12, 'Dec':12}
+parseMonthDict = {'januar':1, 'jänner':1, 'january':1, 'jan':1,
+                  'februar':2, 'february':2, 'feb':2,
+                  'märz':3, 'march':3, 'mar':3, 'mrz': 3,
+                  'april':4, 'apr':4,
+                  'mai':5, 'may':5,
+                  'juni':6, 'june':6, 'jun':6,
+                  'juli':7, 'july':7, 'jul':7,
+                  'august':8, 'aug':8,
+                  'september':9, 'sep':9,
+                  'oktober':10, 'october':10, 'oct':10, 'okt': 10,
+                  'november':11, 'nov':11,
+                  'dezember':12, 'december':12, 'dec':12, 'dez': 12}
+monthRegex = '(' + '|'.join(parseMonthDict.keys()) + ')'
+
+
+def formatTimestamp(year: str|int, month: str|int|None=None, day: str|int|None=None) -> str|Literal[False]:
+    ''' Formatiert das eingegebene Datum im Format YYYY-MM-DD oder gibt False für ungültige Werte zurück. '''
+    month = parseMonthDict[month.lower()] if (type(month) is str and month.lower() in parseMonthDict.keys()) else month
+    try:
+        year = int(year)
+        month = int(month) if month is not None else None
+        day = int(day) if day is not None else None
+        assert (0 <= year <= 9999)
+        assert (month is None) or (1 <= month <= 12)
+        assert (day is None) or (1 <= day <= 31)
+        assert not (day is not None and month is None)
+    except ValueError:
+        return False
+    except AssertionError:
+        return False
+    return str(year).rjust(4,'0') + \
+        ('' if month is None else '-' + str(month).rjust(2,'0')) + \
+            ('' if day is None else '-' + str(day).rjust(2,'0'))
 
 
 def parseWeirdDateFormats(date: str|None):
     ''' Wandelt möglichst alle Datumsformate, die die Vorlage Internetquelle akzeptiert, in Format YYYY-MM-DD um. Gibt False für ungültige Daten zurück. '''
     try:
         if type(date) is not str: return None
+        date = date.lower()
         date = date.replace(' ', ' ') # &nbsp;
-        if re.match('^[0-9]{4}(-[0-9]{2}(-[0-9]{2}.*)?)?$', date): 
-            return date[:10]
-        if re.match('^[0-9]{4}-[0-9]{2}-[0-9]$', date): 
-            return date.split('-')[0] + '-' + date.split('-')[1] + '-' + date.split('-')[2].rjust(2,'0')
-        if re.match('^[0-9][0-9]?\\.[0-9][0-9]?\\.[0-9]{3}[0-9]?$', date): 
-            return date.split('.')[2].rjust(4,'0') + '-' + date.split('.')[1].rjust(2,'0') + '-' + date.split('.')[0].rjust(2,'0')
-        if re.match('^[0-9][0-9]?\\. (Januar|Jänner|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember) [0-9]{3}[0-9]?$', date):
-            return date.split(' ')[2].rjust(4,'0') + '-' + str(parseMonthDict[date.split(' ')[1]]).rjust(2,'0') + '-' + date.split(' ')[0][:-1].rjust(2,'0')
-        if re.match('^(Januar|Jänner|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember) [0-9]{3}[0-9]?$', date):
-            return date.split(' ')[1].rjust(4,'0') + '-' + str(parseMonthDict[date.split(' ')[0]]).rjust(2,'0')
-        if re.match('^[0-9][0-9]? (January|February|March|April|May|June|July|August|September|October|November|December) [0-9]{3}[0-9]?$', date):
-            return date.split(' ')[2].rjust(4,'0') + '-' + str(parseMonthDict[date.split(' ')[1]]).rjust(2,'0') + '-' + date.split(' ')[0].rjust(2,'0')
-        if re.match('^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December) [0-9][0-9]?, [0-9]{3}[0-9]?}$', date):
-            return date.split(', ')[1].rjust(4,'0') + '-' + str(parseMonthDict[date.split(' ')[0]]).rjust(2,'0') + '-' + date.split(', ')[0].split(' ')[1].rjust(2,'0')
-        if re.match('^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December) [0-9]{3}[0-9]?$', date):
-            return date.split(' ')[1].rjust(4,'0') + '-' + str(parseMonthDict[date.split(' ')[0]]).rjust(2,'0')
+        if re.match('[0-9]{4}(-[0-9]{2}(-[0-9]{2}.*)?)?$', date):
+            return formatTimestamp(*date.split('-'))
+        if re.match('[0-9]{4}-[0-9]{2}-[0-9]$', date):
+            return formatTimestamp(*date.split('-'))
+        if re.match('[0-9][0-9]?\\.[0-9][0-9]?\\.[0-9]{4}[a-z]?$', date): 
+            return formatTimestamp(date.split('.')[2].rstrip('abcdefghijklmnopqrstuvwxyz'), date.split('.')[1], date.split('.')[0])
+        if re.match('[0-9][0-9]?\\.? ' + monthRegex + '\\.? [0-9]{4}$', date):
+            return formatTimestamp(date.split(' ')[2], date.split(' ')[1].rstrip('.'), date.split(' ')[0].rstrip('.'))
+        if re.match(monthRegex + ' [0-9][0-9]?, [0-9]{4}$', date):
+            return formatTimestamp(date.split(', ')[1], date.split(' ')[0], date.split(', ')[0].split(' ')[1])
+        if re.match(monthRegex + ' [0-9]{4}$', date):
+            return formatTimestamp(date.split(' ')[1], date.split(' ')[0])
+        if re.match('[0-9]{8}t[0-9]{4}$', date):
+            return formatTimestamp(date[:4], date[4:6], date[6:8])
         return False
     except Exception as e:
         e.add_note(f'failed while parsing weird date "{date}"')
@@ -152,14 +172,13 @@ def dumpAllProblems(allProblems: list[Problem]):
 def checkPageContent(titel: str, content: str, todayString: str):
     wiki = wtp.parse(content)
     for ref in wiki.get_tags('ref'):
-        potentialDate = re.search('(A|a)bgerufen (am|im) (([0-9][0-9]?\\.[0-9][0-9]?\\.[0-9]{3}[0-9]?)|(([0-9][0-9]?\\. )?(Januar|Februar|März|April|Mai|Juni|August|September|Oktober|November|Dezember|Jan|Feb|Mär|Apr|Jun|Jul|Aug|Sep|Okt|Nov|Dez) [0-9]{3}[0-9]?))', ref.contents)
+        potentialDate = re.search('abgerufen (am|im) (([0-9][0-9]?\\.[0-9][0-9]?\\.[0-9]{3}[0-9]?[0-9]?)|(([0-9][0-9]?\\. )?' + monthRegex + ' [0-9]{3}[0-9]?[0-9]?))', ref.contents.lower())
         if potentialDate:
             date = parseWeirdDateFormats(potentialDate.group(3))
-            assert date != False
-            if date > todayString:
-                problem = Problem(titel, 'Abrufdatum liegt in der Zukunft.', str(ref), todayString, date)
-                telegram.send(str(problem) + '\n\n' + todayString + '\n' + date)
-                yield problem
+            if date is False:
+                yield Problem(titel, 'Abrufdatum ungültig.', str(ref), todayString, date)
+            elif date > todayString:
+                yield Problem(titel, 'Abrufdatum liegt in der Zukunft.', str(ref), todayString, date)
     for template in wiki.templates:
         result, asset = datesOk(template)
         if True != result: 
@@ -178,9 +197,11 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem]):
             for rev in page.revisions(total=50):
                 try:
                     if rev['parentid'] == 0: problem.revision = rev['revid']; break
+                    timestamp: pywikibot.Timestamp = rev['timestamp']
+                    revTimestamp = str(timestamp.year).rjust(4,'0') + '-' + str(timestamp.month).rjust(2,'0') + '-' + str(timestamp.day).rjust(2,'0')
                     oldContent = page.getOldVersion(rev['parentid'])
                     if oldContent == None: break # Version verborgen
-                    oldProblems = list(checkPageContent(page.title(), oldContent, getTodayString()))
+                    oldProblems = list(checkPageContent(page.title(), oldContent, revTimestamp))
                     if problem not in oldProblems:
                         problem.freshVersion = (oldProblems == [])
                         problem.revision = rev['revid']
@@ -330,3 +351,4 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s - %(levelname)s - CITE PARAMS - %(message)s', level=logging.DEBUG)
     site = pywikibot.Site('de', 'wikipedia')
     sendPlannedNotifications(site)
+    
