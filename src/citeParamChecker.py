@@ -1,7 +1,6 @@
 from typing import Literal, Any
 from datetime import datetime
 import wikitextparser as wtp
-import traceback
 import pywikibot
 import telegram
 import logging
@@ -10,6 +9,10 @@ import utils
 import pytz
 import time
 import re
+
+
+NOTIFICATION_PROBLEM_TYPES = '(Parameter (datum|abruf/zugriff)|Abrufdatum) liegt in der Zukunft\\.'
+
 
 parseMonthDict = {'Januar':1, 'Jänner':1, 'January':1, 'Jan':1,
                   'Februar':2, 'February':2, 'Feb':2,
@@ -24,6 +27,7 @@ parseMonthDict = {'Januar':1, 'Jänner':1, 'January':1, 'Jan':1,
                   'November':11, 'Nov':11,
                   'Dezember':12, 'December':12, 'Dec':12}
 
+
 def parseWeirdDateFormats(date: str|None):
     ''' Wandelt möglichst alle Datumsformate, die die Vorlage Internetquelle akzeptiert, in Format YYYY-MM-DD um. Gibt False für ungültige Daten zurück. '''
     try:
@@ -33,26 +37,28 @@ def parseWeirdDateFormats(date: str|None):
             return date[:10]
         if re.match('^[0-9]{4}-[0-9]{2}-[0-9]$', date): 
             return date.split('-')[0] + '-' + date.split('-')[1] + '-' + date.split('-')[2].rjust(2,'0')
-        if re.match('^[0-9][0-9]?\\.[0-9][0-9]?\\.[0-9]{4}$', date): 
-            return date.split('.')[2] + '-' + date.split('.')[1].rjust(2,'0') + '-' + date.split('.')[0].rjust(2,'0')
-        if re.match('^[0-9][0-9]?\\. (Januar|Jänner|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember) [0-9]{4}$', date):
-            return date.split(' ')[2] + '-' + str(parseMonthDict[date.split(' ')[1]]).rjust(2,'0') + '-' + date.split(' ')[0][:-1].rjust(2,'0')
-        if re.match('^(Januar|Jänner|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember) [0-9]{4}$', date):
-            return date.split(' ')[1] + '-' + str(parseMonthDict[date.split(' ')[0]]).rjust(2,'0')
-        if re.match('^[0-9][0-9]? (January|February|March|April|May|June|July|August|September|October|November|December) [0-9]{4}$', date):
-            return date.split(' ')[2] + '-' + str(parseMonthDict[date.split(' ')[1]]).rjust(2,'0') + '-' + date.split(' ')[0].rjust(2,'0')
-        if re.match('^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December) [0-9][0-9]?, [0-9]{4}$', date):
-            return date.split(', ')[1] + '-' + str(parseMonthDict[date.split(' ')[0]]).rjust(2,'0') + '-' + date.split(', ')[0].split(' ')[1].rjust(2,'0')
-        if re.match('^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December) [0-9]{4}$', date):
-            return date.split(' ')[1] + '-' + str(parseMonthDict[date.split(' ')[0]]).rjust(2,'0')
+        if re.match('^[0-9][0-9]?\\.[0-9][0-9]?\\.[0-9]{3}[0-9]?$', date): 
+            return date.split('.')[2].rjust(4,'0') + '-' + date.split('.')[1].rjust(2,'0') + '-' + date.split('.')[0].rjust(2,'0')
+        if re.match('^[0-9][0-9]?\\. (Januar|Jänner|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember) [0-9]{3}[0-9]?$', date):
+            return date.split(' ')[2].rjust(4,'0') + '-' + str(parseMonthDict[date.split(' ')[1]]).rjust(2,'0') + '-' + date.split(' ')[0][:-1].rjust(2,'0')
+        if re.match('^(Januar|Jänner|Februar|März|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember) [0-9]{3}[0-9]?$', date):
+            return date.split(' ')[1].rjust(4,'0') + '-' + str(parseMonthDict[date.split(' ')[0]]).rjust(2,'0')
+        if re.match('^[0-9][0-9]? (January|February|March|April|May|June|July|August|September|October|November|December) [0-9]{3}[0-9]?$', date):
+            return date.split(' ')[2].rjust(4,'0') + '-' + str(parseMonthDict[date.split(' ')[1]]).rjust(2,'0') + '-' + date.split(' ')[0].rjust(2,'0')
+        if re.match('^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December) [0-9][0-9]?, [0-9]{3}[0-9]?}$', date):
+            return date.split(', ')[1].rjust(4,'0') + '-' + str(parseMonthDict[date.split(' ')[0]]).rjust(2,'0') + '-' + date.split(', ')[0].split(' ')[1].rjust(2,'0')
+        if re.match('^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December) [0-9]{3}[0-9]?$', date):
+            return date.split(' ')[1].rjust(4,'0') + '-' + str(parseMonthDict[date.split(' ')[0]]).rjust(2,'0')
         return False
     except Exception as e:
         e.add_note(f'failed while parsing weird date "{date}"')
         raise e
 
+
 def getTodayString():
     ''' Gibt Datum in der Form YYYY-MM-DD deutscher Zeit zurück '''
     return datetime.now(tz=pytz.timezone('Europe/Berlin')).strftime('%Y-%m-%d')
+
 
 def datesOk(template: wtp.Template) -> tuple[Literal[True]|str, str|None]:
     ''' Prüft, ob Daten der Vorlagen Internetquelle, Literatur und Cite web ungültig sind oder in der Zukunft liegen '''
@@ -72,7 +78,9 @@ def datesOk(template: wtp.Template) -> tuple[Literal[True]|str, str|None]:
     if abruf != None and zugriff != None: return "Parameter abruf und zugriff beide gesetzt.", abruf
     if abruf == None: abruf = zugriff
     if abruf > todayString: return "Parameter abruf/zugriff liegt in der Zukunft.", abruf
+    if abruf < '2000': return "Parameter abruf/zugriff liegt weit in der Vergangenheit.", abruf
     return True, None
+
 
 def archiveParamsOk(template: wtp.Template) -> Literal[True] | str:
     ''' Prüft, ob Parameter archiv-url und archiv-datum der Vorlagen Internetquelle und Cite web konsistent sind '''
@@ -130,22 +138,36 @@ class Problem(dict):
     def toDict(self):
         return {'titel': self.titel, 'problemtyp': self.problemtyp, 'snippet': self.snippet, 'foundDate': self.foundDate, 'revision': self.revision, 'freshVersion': self.freshVersion, 'assets': self.assets, 'user': self.user}
 
+
 def loadAllProblems() -> list[Problem]:
     content: list[dict] = utils.loadJson('problems.json', [])
     return  [Problem(dictionary=problem) for problem in content]
+
 
 def dumpAllProblems(allProblems: list[Problem]):
     content = [problem.toDict() for problem in allProblems]
     utils.dumpJson('problems.json', content)
 
+
 def checkPageContent(titel: str, content: str, todayString: str):
-    for template in wtp.parse(content).templates:
+    wiki = wtp.parse(content)
+    for ref in wiki.get_tags('ref'):
+        potentialDate = re.search('(A|a)bgerufen (am|im) (([0-9][0-9]?\\.[0-9][0-9]?\\.[0-9]{3}[0-9]?)|(([0-9][0-9]?\\. )?(Januar|Februar|März|April|Mai|Juni|August|September|Oktober|November|Dezember|Jan|Feb|Mär|Apr|Jun|Jul|Aug|Sep|Okt|Nov|Dez) [0-9]{3}[0-9]?))', ref.contents)
+        if potentialDate:
+            date = parseWeirdDateFormats(potentialDate.group(3))
+            assert date != False
+            if date > todayString:
+                problem = Problem(titel, 'Abrufdatum liegt in der Zukunft.', str(ref), todayString, date)
+                telegram.send(str(problem) + '\n\n' + todayString + '\n' + date)
+                yield problem
+    for template in wiki.templates:
         result, asset = datesOk(template)
         if True != result: 
             yield Problem(titel, result, str(template), todayString, asset)
         result = archiveParamsOk(template)
         if True != result: 
             yield Problem(titel, result, str(template), todayString)
+
 
 def checkPage(site: Any, pagetitle: str, allProblems: list[Problem]):
     try:
@@ -180,6 +202,7 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem]):
         e.add_note(f'failed while checking page {pagetitle}')
         raise e
 
+
 def checkPagesInProblemList(site):
     allProblems = loadAllProblems()
     logging.debug(f'checking list of {len(allProblems)} problems ...')
@@ -207,7 +230,8 @@ def checkPagesInProblemList(site):
     for page in allPages:
         allProblems += checkPage(site, page, allProblems)
     dumpAllProblems(allProblems)
-    
+
+
 def updateWikilist():
     allProblems = loadAllProblems()
     datum = None
@@ -230,7 +254,8 @@ def updateWikilist():
     if optOut.isAllowed(page):
         page.save(botflag=True, minor=False, summary=(f'Bot: Aktualisiere Wartungsliste: {len(allProblems)} Einträge'))
     site.logout()
-    
+
+
 numberOfChanges = 0
 numberOfNewProblems = 0
 def checkPagefromRecentChanges(site: Any, pagetitle: str):
@@ -241,7 +266,7 @@ def checkPagefromRecentChanges(site: Any, pagetitle: str):
     newProblems = checkPage(site, pagetitle, allProblems)
     for problem in newProblems:
         numberOfNewProblems += 1
-        if re.match('Parameter (datum|abruf/zugriff) liegt in der Zukunft\\.', problem.problemtyp) and problem.freshVersion:
+        if re.match(NOTIFICATION_PROBLEM_TYPES, problem.problemtyp) and problem.freshVersion:
             futureWarnings: list[str] = utils.loadJson('futureWarningsPlanned.json', [])
             if problem.titel not in futureWarnings: futureWarnings.append(problem.titel)
             utils.dumpJson('futureWarningsPlanned.json', futureWarnings)
@@ -252,6 +277,7 @@ def checkPagefromRecentChanges(site: Any, pagetitle: str):
         logging.info(f'Checked 200 changes and found {numberOfNewProblems} new problems.')
         numberOfNewProblems = 0
         numberOfChanges = 0
+
 
 def sendPlannedNotifications(site):
     plannedNotifications: list[str] = utils.loadJson('futureWarningsPlanned.json', [])
@@ -272,7 +298,7 @@ def sendPlannedNotifications(site):
                 skippedNotifications.add(pagetitle)
                 continue
             for problem in checkPage(site, pagetitle, []):
-                if not re.match('Parameter (datum|abruf/zugriff) liegt in der Zukunft\\.', problem.problemtyp): continue
+                if not re.match(NOTIFICATION_PROBLEM_TYPES, problem.problemtyp): continue
                 if not problem.freshVersion: continue
                 if sentNotifications.get(problem.user) == None: sentNotifications[problem.user] = {}
                 if sentNotifications[problem.user].get(pagetitle) != None: 
@@ -298,6 +324,7 @@ def sendPlannedNotifications(site):
             logging.info(f'do not notify {user} because saving failed')
     utils.dumpJson('futureWarningsPlanned.json', list(skippedNotifications))
     utils.dumpJson('futureWarningsSent.json', sentNotifications)
+
 
 if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s - %(levelname)s - CITE PARAMS - %(message)s', level=logging.DEBUG)
