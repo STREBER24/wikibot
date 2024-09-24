@@ -174,7 +174,7 @@ def checkPageContent(titel: str, content: str, todayString: str):
     for ref in wiki.get_tags('ref'):
         potentialDate = re.search('abgerufen (am|im) (([0-9][0-9]?\\.[0-9][0-9]?\\.[0-9]{3}[0-9]?[0-9]?)|(([0-9][0-9]?\\. )?' + monthRegex + ' [0-9]{3}[0-9]?[0-9]?))', ref.contents.lower())
         if potentialDate:
-            date = parseWeirdDateFormats(potentialDate.group(3))
+            date = parseWeirdDateFormats(potentialDate.group(2))
             if date is False:
                 yield Problem(titel, 'Abrufdatum ungültig.', str(ref), todayString, date)
             elif date > todayString:
