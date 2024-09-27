@@ -56,7 +56,7 @@ def parseWeirdDateFormats(date: str|None):
         date = date.lower()
         date = date.replace(' ', ' ') # &nbsp;
         if re.match('[0-9]{4}(-[0-9]{2}(-[0-9]{2}.*)?)?$', date):
-            return formatTimestamp(*date.split('-'))
+            return formatTimestamp(*date[:10].split('-'))
         if re.match('[0-9]{4}-[0-9]{2}-[0-9]$', date):
             return formatTimestamp(*date.split('-'))
         if re.match('[0-9][0-9]?\\.[0-9][0-9]?\\.[0-9]{4}[a-z]?$', date): 
