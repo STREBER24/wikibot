@@ -6,7 +6,7 @@ import bs4
 
 
 class TestDateParsing(unittest.TestCase):
-    def test_dates(self):
+    def test_weird_date_parsing(self):
         site = pywikibot.Site('de', 'wikipedia')
         page = pywikibot.Page(site, 'Benutzer:DerIchBot/Datumstests')
         rawDates = [i.split('|')[2] for i in page.get().split('\n\n')]
@@ -18,6 +18,11 @@ class TestDateParsing(unittest.TestCase):
                 if timestamp != False: timestamp = utils.formatDateFromDatestring(timestamp)
                 if timestamp == False: timestamp = 'Format invalid'
                 self.assertEqual(timestamp, parsed)
+                
+    def test_date_month_offset(self):
+        self.assertEqual(citeParamChecker.getNextMonth('2020-03-17'), '2020-04-17')
+        self.assertEqual(citeParamChecker.getNextMonth('2025-12-20'), '2026-01-20')
+        self.assertEqual(citeParamChecker.getNextMonth('2021-01-30'), '2021-02-28')
 
 
 if __name__ == '__main__':

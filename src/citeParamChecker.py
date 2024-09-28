@@ -80,6 +80,18 @@ def getTodayString():
     return datetime.now(tz=pytz.timezone('Europe/Berlin')).strftime('%Y-%m-%d')
 
 
+def getNextMonth(datestring: str):
+    ''' Verschiebt Datum der Form YYYY-MM-DD um einen Monat. '''
+    year = int(datestring[:4])
+    month = int(datestring[5:7])
+    day = int(datestring[8:10])
+    month += 1
+    if month > 12: year += 1; month = 1
+    maxDays = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month-1]
+    day = min(day, maxDays)
+    return formatTimestamp(year, month, day)
+
+
 def datesOk(template: wtp.Template) -> tuple[Literal[True]|str, str|None]:
     ''' Prüft, ob Daten der Vorlagen Internetquelle, Literatur und Cite web ungültig sind oder in der Zukunft liegen '''
     templateName = template.name.strip()
@@ -92,7 +104,7 @@ def datesOk(template: wtp.Template) -> tuple[Literal[True]|str, str|None]:
     if abruf == False: return 'Abrufdatum ungültig.', abruf
     if zugriff == False: return 'Zugriffsdatum ungültig.', zugriff
     if datum == False: return 'Veröffentlichungsdatum ungültig.', datum
-    if datum != None and datum > todayString: return "Parameter datum liegt in der Zukunft.", datum
+    if datum != None and datum > getNextMonth(todayString): return "Parameter datum liegt in der Zukunft.", datum
     if abruf == None and zugriff == None and templateName == 'Internetquelle': return "Pflichtparameter abruf nicht gesetzt.", abruf
     if abruf == None and zugriff == None and templateName != 'Internetquelle': return True, None
     if abruf != None and zugriff != None: return "Parameter abruf und zugriff beide gesetzt.", abruf
