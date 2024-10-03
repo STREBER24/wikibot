@@ -65,8 +65,8 @@ def parseWeirdDateFormats(date: str|None):
             return formatTimestamp(date.split(' ')[2], date.split(' ')[1].rstrip('.'), date.split(' ')[0].rstrip('.'))
         if re.match(monthRegex + ' [0-9][0-9]?, [0-9]{4}$', date):
             return formatTimestamp(date.split(', ')[1], date.split(' ')[0], date.split(', ')[0].split(' ')[1])
-        if re.match(monthRegex + ' [0-9]{4}$', date):
-            return formatTimestamp(date.split(' ')[1], date.split(' ')[0])
+        if re.match(monthRegex + '\\.? [0-9]{4}$', date):
+            return formatTimestamp(date.split(' ')[1], date.split(' ')[0].rstrip('.'))
         if re.match('[0-9]{8}t[0-9]{4}$', date):
             return formatTimestamp(date[:4], date[4:6], date[6:8])
         return False
