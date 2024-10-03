@@ -2,6 +2,7 @@ from typing import Any
 import wikitextparser as wtp
 import pywikibot
 import requests
+import logging
 import random
 import optOut
 import utils
@@ -50,16 +51,16 @@ def addAllDischs():
             if utils.findTemplateArg(template, 'Region-ISO') != 'DE-BW': continue
             currentID = utils.findTemplateArg(template, 'Schulnummer')
             if currentID not in [None, '']:
-                # print(f'skip because id is already set: {page.title()}')
+                logging.debug(f'skip because id is already set: {page.title()}')
                 continue
             dischs = getAllSchoolDischs(page.title()) | getAllSchoolDischs(utils.findTemplateArg(template, 'Schulname'))
             if len(dischs) == 0:
-                print(f'skip because no disch was found: {page.title()}')
+                logging.info(f'skip because no disch was found: {page.title()}')
                 continue
             if len(dischs) > 1:
-                print(f'skip because multiple dischs were found: {page.title()}')
+                logging.info(f'skip because multiple dischs were found: {page.title()}')
                 continue
-            print(f'handle {page.title()}')
+            logging.info(f'handle {page.title()}')
             disch = dischs.pop()
             template.set_arg('Schulnummer', disch, preserve_spacing=True)
             page.text = parsed
@@ -67,9 +68,14 @@ def addAllDischs():
                 page.save(botflag=True, minor=False, summary=(f'Bot: Ergänze Schulnummer (DISCH). Siehe https://schulamt-bw.de/Schuladressdatenbank'))
 
 def addWikidataNumberClaim(repo: Any, item: pywikibot.ItemPage, property: str, number: int, url: str, pointInTime: pywikibot.WbTime):
-    if property in item.get()['claims']:
-        print(f'skip update of {item.title()} because {property} is already set.')
-        return
+    logging.info(f'try to add claim {property} to {item.title()}')
+    existingClaims: list[pywikibot.Claim] = item.get()['claims'].get(property) or []
+    for existingClaim in existingClaims:
+        pointInTimeQualifiers: list[pywikibot.Claim] = existingClaim.qualifiers.get('P585') or []
+        for qual in pointInTimeQualifiers:
+            if qual.getTarget() == pointInTime:
+                logging.info(f'skip update of {item.title()} because {property} is already set with same point in time qualifier.')
+                return
     # Anzahl der Schüler / Studenten / Lehrer
     claim = pywikibot.Claim(repo, property)
     claim.setTarget(pywikibot.WbQuantity(number, site=repo))
@@ -97,11 +103,11 @@ def updateWikidata():
             if id != None: ids.add(id)
         if len(ids) != 1: continue
         disch = ids.pop()
-        print(f'found disch {disch} of {page.title()}')
+        logging.info(f'found disch {disch} of {page.title()}')
         try:
             school = getSchoolByDisch(disch)
         except Exception as e:
-            print(f'[ERROR] when fetching school: {e}')
+            logging.error(f'failed when fetching school: {e}')
         else:
             students = school.get('SCHUELER')
             teachers = school.get('LEHRER')
@@ -109,6 +115,9 @@ def updateWikidata():
             if students != None: addWikidataNumberClaim(repo, item, 'P2196',  students, 'https://schulamt-bw.de/Schuladressdatenbank', pywikibot.WbTime(2024, 1))
             if teachers != None: addWikidataNumberClaim(repo, item, 'P10610', teachers, 'https://schulamt-bw.de/Schuladressdatenbank', pywikibot.WbTime(2024, 1))
 
+
+# .venv/bin/python src/schools-bw.py >> logs/schools.log &
 if __name__ == '__main__':
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - SCHOOLS BW - %(message)s', level=logging.INFO)
     # addAllDischs()
     updateWikidata()
