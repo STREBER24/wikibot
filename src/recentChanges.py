@@ -40,6 +40,14 @@ class LagMonitor:
             self.maxLag = 0
             self.minLag = 9999999999999999
 
+
+def getPageFromRevision(site, revision: int):
+    request = site.simple_request(action='query', prop='revisions', revids=revision)
+    data = request.submit()
+    pageId = list(data['query']['pages'].keys())[0]
+    return data['query']['pages'][pageId]['title']
+
+
 def monitorRecentChanges():
     site = pywikibot.Site('de', 'wikipedia')
     stream = eventstreams.EventStreams(streams='recentchange')
@@ -52,6 +60,11 @@ def monitorRecentChanges():
             logging.debug(f'handle recent change {change.get('revision')} on {change.get('title')}')
             lagMonitor.checkRevision(change)
             telegram.alarmOnChange(change)
+            if '�' in change['title']: # Invalid title
+                logging.warning(f'replacement char found in title "{change.get('title')}" on change {change.get('revision')}')
+                newTitle = getPageFromRevision(site, change['revision']['new'])
+                telegram.send(f'replacement char in title ({telegram.difflink(change)})\n{change['title']}\n{newTitle}', silent=True)
+                change['title'] = newTitle
             if change['namespace'] == 4: # Wikipedia:XYZ
                 if re.match('^Wikipedia:Löschkandidaten/.', change['title']):
                     deletionInfo.handleDeletionDiscussionUpdate(site, change['title'], change)
