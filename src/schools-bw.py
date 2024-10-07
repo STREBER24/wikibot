@@ -2,6 +2,7 @@ from typing import Any
 import wikitextparser as wtp
 import pywikibot
 import requests
+import telegram
 import logging
 import random
 import optOut
@@ -88,6 +89,7 @@ def addWikidataNumberClaim(repo: Any, item: pywikibot.ItemPage, property: str, n
     utils.addWikidataSource(repo, claim, url)
 
 def updateWikidata():
+    logging.info('START UPDATING BW SCHOOLS ON WIKIDATA')
     wikipedia = pywikibot.Site('de', 'wikipedia')
     wikidata = pywikibot.Site('wikidata', 'wikidata')
     repo = wikidata.data_repository()
@@ -114,10 +116,15 @@ def updateWikidata():
             item = pywikibot.ItemPage.fromPage(page)
             if students != None: addWikidataNumberClaim(repo, item, 'P2196',  students, 'https://schulamt-bw.de/Schuladressdatenbank', pywikibot.WbTime(2024, 1))
             if teachers != None: addWikidataNumberClaim(repo, item, 'P10610', teachers, 'https://schulamt-bw.de/Schuladressdatenbank', pywikibot.WbTime(2024, 1))
+    logging.info('FINISHED UPDATING BW SCHOOLS ON WIKIDATA')
 
 
-# .venv/bin/python src/schools-bw.py >> logs/schools.log &
+# nohup .venv/bin/python src/schools-bw.py >> logs/schools.log &
 if __name__ == '__main__':
-    logging.basicConfig(format='%(asctime)s - %(levelname)s - SCHOOLS BW - %(message)s', level=logging.INFO)
-    # addAllDischs()
-    updateWikidata()
+    try:
+        logging.basicConfig(format='%(asctime)s - %(levelname)s - SCHOOLS BW - %(message)s', level=logging.INFO)
+        addAllDischs()
+        updateWikidata()
+        telegram.send('finished updating bw schools successfull', silent=True)
+    except Exception:
+        telegram.handleException('SCHOOLS-BW')

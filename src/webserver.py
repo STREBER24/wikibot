@@ -13,7 +13,7 @@ PORT = 80
 
 @app.route('/aktualisiere-wartungsliste-cache')
 def aktualisiere_wartungsliste_cache(): 
-    if utils.checkLastUpdate('aktualisiere-wartungsliste-cache', 15):
+    if utils.checkLastUpdate('aktualisiere-wartungsliste-cache', 15)[0]:
         citeParamChecker.updateWikilist()
         return 'Wartungsliste erfolgreich aktualisiert. Du wirst gleich weitergeleitet ...', {"Refresh": "4; url=https://de.wikipedia.org/wiki/Benutzer:DerIchBot/Wartungsliste"}
     else:
@@ -21,7 +21,7 @@ def aktualisiere_wartungsliste_cache():
 
 @app.route('/aktualisiere-wartungsliste-check')
 def aktualisiere_wartungsliste_check(): 
-    if utils.checkLastUpdate('aktualisiere-wartungsliste-check', 15):
+    if utils.checkLastUpdate('aktualisiere-wartungsliste-check', 15)[0]:
         site = pywikibot.Site('de', 'wikipedia')
         citeParamChecker.checkPagesInProblemList(site)
         citeParamChecker.updateWikilist()
@@ -31,7 +31,7 @@ def aktualisiere_wartungsliste_check():
 
 @app.route('/aktualisiere-opt-out')
 def aktualisiere_opt_out(): 
-    if utils.checkLastUpdate('download-opt-out-list', 5):
+    if utils.checkLastUpdate('download-opt-out-list', 5)[0]:
         optOut.download()
         return 'Opt-Out Liste erfolgreich heruntergeladen. Du wirst gleich weitergeleitet ...', {"Refresh": "4; url=https://de.wikipedia.org/wiki/Benutzer:DerIchBot/Opt-Out_Liste"}
     else:

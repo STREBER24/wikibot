@@ -60,14 +60,15 @@ def findTemplateArg(template: wtp.Template, argName: str):
     stripped = parsed.plain_text(replace_templates=templateToPlainText).strip()
     return stripped if stripped != '' else None
 
-def checkLastUpdate(key: str, minDelayMinutes: int):
+def checkLastUpdate(key: str, minDelayMinutes: int) -> tuple[bool,float]:
     data: dict[str,int] = loadJson('last-updates.json', {})
     lastUpdate = data.get(key)
-    if type(lastUpdate) is int and lastUpdate > time.time() - (minDelayMinutes*60):
-        return False
+    timeSinceLastUpdate = 1e500 if lastUpdate is None else time.time() - lastUpdate 
+    if type(lastUpdate) is int and timeSinceLastUpdate < (minDelayMinutes*60):
+        return False, timeSinceLastUpdate
     data[key] = int(time.time())
     dumpJson('last-updates.json', data)
-    return True
+    return True, timeSinceLastUpdate
 
 def addWikidataSource(repo: Any, claim: pywikibot.Claim,  url: str):
     now = time.localtime()

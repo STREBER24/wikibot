@@ -63,7 +63,6 @@ def monitorRecentChanges():
             if '�' in change['title']: # Invalid title
                 logging.warning(f'replacement char found in title "{change.get('title')}" on change {change.get('revision')}')
                 newTitle = getPageFromRevision(site, change['revision']['new'])
-                telegram.send(f'replacement char in title ({telegram.difflink(change)})\n{change['title']}\n{newTitle}', silent=True)
                 change['title'] = newTitle
             if change['namespace'] == 4: # Wikipedia:XYZ
                 if re.match('^Wikipedia:Löschkandidaten/.', change['title']):

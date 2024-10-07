@@ -38,11 +38,12 @@ def handleException(tag: str):
 
 def handleServerError(e: Exception):
     logging.warning(f'Ignored Server Error\n{traceback.format_exc()}')
-    if utils.checkLastUpdate('ignored-server-error', 60):
-        send('WARNING: Ignored Server Error', silent=True)
-    else:
-        e.add_note(f'failed on server error')
+    noFail, lastServerError = utils.checkLastUpdate('ignored-server-error', 60)
+    if not noFail:
+        e.add_note(f'failed on server error; last error {lastServerError/60:.0f}min ago')
         raise e
+    if lastServerError < 60 *60 * 3: # 3h
+        send(f'WARNING: Ignored Server Error; last one {lastServerError/60:.0f}min ago', silent=True)
     
     
 def difflink(change: dict):
@@ -66,7 +67,7 @@ def alarmOnChange(change: dict):
     def notify(msg: str):
         logging.warning(change)
         outstandingNotifications.append(f'{msg} ({difflink(change)})')
-    XQBOT_INACTIVITY_NOTIFICATION_DELAY = 12
+    XQBOT_INACTIVITY_NOTIFICATION_DELAY = 18
     if not xqbotInactive and time.time() - lastXqbotDeletionNotification > 60*60*XQBOT_INACTIVITY_NOTIFICATION_DELAY:
         xqbotInactive = True
         outstandingNotifications.append(f'xqbot inaktiv für {XQBOT_INACTIVITY_NOTIFICATION_DELAY}h')
