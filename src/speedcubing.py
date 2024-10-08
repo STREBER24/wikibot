@@ -101,7 +101,8 @@ def stripTag(tag: bs4.element.Tag | None):
 
 def scrape():
     print('Lade worldcubeassociation.org ...')
-    result = requests.get('https://www.worldcubeassociation.org/results/records?show=history')
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'}
+    result = requests.get('https://www.worldcubeassociation.org/results/records?show=history', headers=headers)
     assert result.ok
     soup = bs4.BeautifulSoup(result.text, 'html.parser')
     body = soup.find(id='results-list')
