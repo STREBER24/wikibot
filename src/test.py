@@ -23,6 +23,11 @@ class TestDateParsing(unittest.TestCase):
         self.assertEqual(citeParamChecker.getNextMonth('2020-03-17'), '2020-04-17')
         self.assertEqual(citeParamChecker.getNextMonth('2025-12-20'), '2026-01-20')
         self.assertEqual(citeParamChecker.getNextMonth('2021-01-30'), '2021-02-28')
+                
+    def test_date_day_offset(self):
+        self.assertEqual(citeParamChecker.getNextDay('2020-03-17'), '2020-03-18')
+        self.assertEqual(citeParamChecker.getNextDay('2025-12-31'), '2026-01-01')
+        self.assertEqual(citeParamChecker.getNextDay('2021-01-31'), '2021-02-01')
 
 
 if __name__ == '__main__':

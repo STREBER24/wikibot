@@ -92,6 +92,17 @@ def getNextMonth(datestring: str):
     return formatTimestamp(year, month, day)
 
 
+def getNextDay(datestring: str):
+    ''' Verschiebt Datum der Form YYYY-MM-DD um einen Tag. '''
+    year = int(datestring[:4])
+    month = int(datestring[5:7])
+    day = int(datestring[8:10])
+    day += 1
+    if day > [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month-1]: month += 1; day = 1
+    if month > 12: year += 1; month = 1
+    return formatTimestamp(year, month, day)
+
+
 def datesOk(template: wtp.Template) -> tuple[Literal[True]|str, str|None]:
     ''' Prüft, ob Daten der Vorlagen Internetquelle, Literatur und Cite web ungültig sind oder in der Zukunft liegen '''
     templateName = template.name.strip()
@@ -109,7 +120,7 @@ def datesOk(template: wtp.Template) -> tuple[Literal[True]|str, str|None]:
     if abruf == None and zugriff == None and templateName != 'Internetquelle': return True, None
     if abruf != None and zugriff != None: return "Parameter abruf und zugriff beide gesetzt.", abruf
     if abruf == None: abruf = zugriff
-    if abruf > todayString: return "Parameter abruf/zugriff liegt in der Zukunft.", abruf
+    if abruf > getNextDay(todayString): return "Parameter abruf/zugriff liegt in der Zukunft.", abruf
     if abruf < '2000': return "Parameter abruf/zugriff liegt weit in der Vergangenheit.", abruf
     return True, None
 
@@ -189,7 +200,7 @@ def checkPageContent(titel: str, content: str, todayString: str):
             date = parseWeirdDateFormats(potentialDate.group(2))
             if date is False:
                 yield Problem(titel, 'Abrufdatum ungültig.', str(ref), todayString, date)
-            elif date > todayString:
+            elif date > getNextDay(todayString):
                 yield Problem(titel, 'Abrufdatum liegt in der Zukunft.', str(ref), todayString, date)
     for template in wiki.templates:
         result, asset = datesOk(template)
