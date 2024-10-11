@@ -4,12 +4,14 @@ import pywikibot
 import requests
 import telegram
 import logging
+import schools
 import random
 import optOut
 import utils
 import json
 
-def getAllSchoolDischs(search: str|None='', multiplePages: bool=False) -> set[str]:
+
+def getAllSchoolDischs(search: str|None='', multiplePages: bool=True) -> set[str]:
     if search == None: return set()
     uid = random.randint(1, 99999999)
     data: set[str] = set()
@@ -33,13 +35,30 @@ def getAllSchoolDischs(search: str|None='', multiplePages: bool=False) -> set[st
             ok = False
     return data
 
+
 def getSchoolByDisch(disch: str):
     url = 'https://lobw.kultus-bw.de/didsuche/DienststellenSucheWebService.asmx/GetDienststelle'
     res = requests.post(url, json={'disch': disch})
     data: dict = json.loads(res.json().get('d'))
-    data['NAME'] = utils.getText(data.get('NAME'))
-    data['UEBERGEORDNET'] = utils.getText(data.get('UEBERGEORDNET'))
-    return data
+    return schools.School(
+        name = utils.getText(data.get('NAME')),
+        authority = schools.Authority(name=utils.getText(data.get('UEBERGEORDNET')), url=data['UEBERGEORDNET_INTERNET']),
+        id = data['DISCH'],
+        state = 'BW',
+        address = schools.Address(street=data['DISTR'], plz=int(data['PLZSTR']), town=data['DIORT'], district=data['KREISBEZEICHNUNG']),
+        phone = data['TELGANZ'],
+        fax = data['FAXGANZ'],
+        email = data['VERWEMAIL'],
+        url = data['INTERNET'],
+        principal = data['SLFAMVOR'],
+        vicePrincipal = data['V1FAMVOR'],
+        students = data['SCHUELER'],
+        classes = data['KLASSEN'],
+        teachers = data['LEHRER'],
+        description = data['DISCH_KURZTEXT'],
+        sponsor = schools.Sponsor(sponsorType=data['WL_KURZ_BEZEICHNUNG'], name=data['STR_KURZ_BEZEICHNUNG'])
+    )
+
 
 def addAllDischs():
     site = pywikibot.Site('de', 'wikipedia')
@@ -68,6 +87,7 @@ def addAllDischs():
             if optOut.isAllowed(page):
                 page.save(botflag=True, minor=False, summary=(f'Bot: Ergänze Schulnummer (DISCH). Siehe https://schulamt-bw.de/Schuladressdatenbank'))
 
+
 def addWikidataNumberClaim(repo: Any, item: pywikibot.ItemPage, property: str, number: int, url: str, pointInTime: pywikibot.WbTime):
     logging.info(f'try to add claim {property} to {item.title()}')
     existingClaims: list[pywikibot.Claim] = item.get()['claims'].get(property) or []
@@ -87,6 +107,7 @@ def addWikidataNumberClaim(repo: Any, item: pywikibot.ItemPage, property: str, n
     claim.addQualifier(qualifier, summary=f'Bot: Adding a qualifier to {property}.')
     # URL der Fundstelle und abgerufen am
     utils.addWikidataSource(repo, claim, url)
+
 
 def updateWikidata():
     logging.info('START UPDATING BW SCHOOLS ON WIKIDATA')
@@ -111,11 +132,9 @@ def updateWikidata():
         except Exception as e:
             logging.error(f'failed when fetching school: {e}')
         else:
-            students = school.get('SCHUELER')
-            teachers = school.get('LEHRER')
             item = pywikibot.ItemPage.fromPage(page)
-            if students != None: addWikidataNumberClaim(repo, item, 'P2196',  students, 'https://schulamt-bw.de/Schuladressdatenbank', pywikibot.WbTime(2024, 1))
-            if teachers != None: addWikidataNumberClaim(repo, item, 'P10610', teachers, 'https://schulamt-bw.de/Schuladressdatenbank', pywikibot.WbTime(2024, 1))
+            if school.students is not None: addWikidataNumberClaim(repo, item, 'P2196',  school.students, 'https://schulamt-bw.de/Schuladressdatenbank', pywikibot.WbTime(2024, 1))
+            if school.teachers is not None: addWikidataNumberClaim(repo, item, 'P10610', school.teachers, 'https://schulamt-bw.de/Schuladressdatenbank', pywikibot.WbTime(2024, 1))
     logging.info('FINISHED UPDATING BW SCHOOLS ON WIKIDATA')
 
 

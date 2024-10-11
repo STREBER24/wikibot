@@ -1,6 +1,8 @@
+from typing import Optional
 import citeParamChecker
 import pywikibot
 import unittest
+import schools
 import utils
 import bs4
 
@@ -28,6 +30,15 @@ class TestDateParsing(unittest.TestCase):
         self.assertEqual(citeParamChecker.getNextDay('2020-03-17'), '2020-03-18')
         self.assertEqual(citeParamChecker.getNextDay('2025-12-31'), '2026-01-01')
         self.assertEqual(citeParamChecker.getNextDay('2021-01-31'), '2021-02-01')
+
+
+class TestSchoolDecorators(unittest.TestCase):
+    def test_can_be_none(self):
+        self.assertTrue(schools.canBeNone(str|None|float))
+        self.assertTrue(schools.canBeNone(str|Optional[str]|int))
+        self.assertTrue(schools.canBeNone(None))
+        self.assertFalse(schools.canBeNone(str|int))
+        self.assertFalse(schools.canBeNone(float))
 
 
 if __name__ == '__main__':
