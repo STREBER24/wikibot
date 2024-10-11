@@ -2,6 +2,7 @@ import wikitextparser as wtp
 from typing import Literal
 import citeParamChecker
 import pywikibot
+import telegram
 import logging
 import utils
 import time
@@ -57,19 +58,24 @@ def notify(site, creator: str, kattitles: list[str], diskTitle: str):
     return False
 
 
-def parseKatDisk(page: pywikibot.Page):
+def parseKatDisk(page: pywikibot.Page) -> dict[str,set[str]]:
     result: dict[str,set[str]] = {} # {pagetitle: userlinks}
-    content = page.text
-    parsed = wtp.parse(content)
-    for sec in parsed.sections:
-        if sec.level != 2: continue
-        titellinks = wtp.parse(sec.title).wikilinks
-        for link in titellinks:
-            if not link.target.startswith(':Kategorie:'): continue
-            kattitle = link.target[1:]
-            userlinks = utils.extractUserLinks(sec)
-            result[kattitle] = userlinks
-    return result
+    try:
+        content = page.text
+    except pywikibot.exceptions.ServerError as e:
+        telegram.handleServerError(e)
+        return parseKatDisk(page)
+    else:
+        parsed = wtp.parse(content)
+        for sec in parsed.sections:
+            if sec.level != 2: continue
+            titellinks = wtp.parse(sec.title).wikilinks
+            for link in titellinks:
+                if not link.target.startswith(':Kategorie:'): continue
+                kattitle = link.target[1:]
+                userlinks = utils.extractUserLinks(sec)
+                result[kattitle] = userlinks
+        return result
 
 def getPageCreator(page: pywikibot.Page) -> str|None:
     try:
