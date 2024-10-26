@@ -1,6 +1,7 @@
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, fields, asdict
 from types import UnionType, NoneType
-from typing import get_origin, Union
+from typing import get_origin, Union, Any
+from abc import ABC
 
 
 def canBeNone(tp) -> bool:
@@ -8,6 +9,11 @@ def canBeNone(tp) -> bool:
     if get_origin(tp) is Union or get_origin(tp) is UnionType:
         return any(canBeNone(subtp) for subtp in tp.__args__)
     return tp is NoneType or tp is None
+
+
+class CostumDataClass(ABC):
+    def isAllNone(self) -> bool: raise NotImplementedError()
+    def toDict(self) -> dict[str, Any]: raise NotImplementedError()
 
 
 def typeChecked(cls):
@@ -26,14 +32,21 @@ def typeChecked(cls):
         for field in fields(cls):
             if getattr(self, field.name) is not None: return False
         return True
+    def toDict(self):
+        def removeNone(obj):
+            if isinstance(obj, dict): return {k: removeNone(v) for k, v in obj.items() if v is not None}
+            if isinstance(obj, list): return [removeNone(v) for v in obj if v is not None]
+            return obj
+        return removeNone(asdict(self))
     cls.__init__ = new_init
     cls.isAllNone = isAllNone
+    cls.toDict = toDict
     return cls
 
 
 @typeChecked
 @dataclass
-class Address:
+class Address(CostumDataClass):
     street: str 
     plz: int
     town: str
@@ -42,21 +55,21 @@ class Address:
 
 @typeChecked
 @dataclass
-class Authority:
+class Authority(CostumDataClass):
     name: str
     url: str | None
     
 
 @typeChecked
 @dataclass
-class Sponsor:
+class Sponsor(CostumDataClass):
     sponsorType: str | None
     name: str | None
 
 
 @typeChecked
 @dataclass
-class School:
+class School(CostumDataClass):
     state: str
     id: str
     name: str
