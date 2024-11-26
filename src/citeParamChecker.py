@@ -92,6 +92,15 @@ def getNextMonth(datestring: str):
     return formatTimestamp(year, month, day)
 
 
+def getNextYear(datestring: str):
+    ''' Verschiebt Datum der Form YYYY-MM-DD um einen Monat. '''
+    year = int(datestring[:4])
+    month = int(datestring[5:7])
+    day = int(datestring[8:10])
+    year += 1
+    return formatTimestamp(year, month, day)
+
+
 def getNextDay(datestring: str):
     ''' Verschiebt Datum der Form YYYY-MM-DD um einen Tag. '''
     year = int(datestring[:4])
@@ -115,7 +124,7 @@ def datesOk(template: wtp.Template) -> tuple[Literal[True]|str, str|None]:
     if abruf == False: return 'Abrufdatum ungültig.', abruf
     if zugriff == False: return 'Zugriffsdatum ungültig.', zugriff
     if datum == False: return 'Veröffentlichungsdatum ungültig.', datum
-    if datum != None and datum > getNextMonth(todayString): return "Parameter datum liegt in der Zukunft.", datum
+    if datum != None and datum > getNextYear(todayString): return "Parameter datum liegt in der Zukunft.", datum
     if abruf == None and zugriff == None and templateName == 'Internetquelle': return "Pflichtparameter abruf nicht gesetzt.", abruf
     if abruf == None and zugriff == None and templateName != 'Internetquelle': return True, None
     if abruf != None and zugriff != None: return "Parameter abruf und zugriff beide gesetzt.", abruf
