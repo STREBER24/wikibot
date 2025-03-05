@@ -131,6 +131,6 @@ Hallo{'' if re.match(ipRegex, username) else ' '+username},
 
 {content}
 
-Ich bin übrigens nur ein [[WP:Bots|Bot]]. Wenn ich nicht richtig funktioniere, sag bitte [[Benutzer Diskussion:DerIch27|DerIch27]] bescheid. Wenn du nicht mehr von mir benachrichtigt werden möchtest, kannst du dich auf {optOutLists} Liste]] eintragen.
+Ich bin übrigens nur ein [[WP:Bots|Bot]]. Wenn ich nicht richtig funktioniere, sag bitte [[Benutzer Diskussion:DerIch27|DerIch27]] Bescheid. Wenn du nicht mehr von mir benachrichtigt werden möchtest, kannst du dich auf {optOutLists} Liste]] eintragen.
 
 Freundliche Grüsse  --~~~~"""
