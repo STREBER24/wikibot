@@ -63,9 +63,10 @@ def parseSwitch(data: list[str], key: int):
     data = (['', '', '', ''] + data)[-4:]
     return '{{#switch: {{{' + str(key) + '}}} |4=' + data[0] + ' |3='+ data[1] + ' |2='+ data[2] + ' |#default=' + data[3] + '}}'
 
+months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    
 def parseDates(data: list[dict[str, str]], discipline: str):
     if data == []: return parseError('Keine Daten für diese Parameterkombination.')
-    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     dates = [i['date'] for i in data]
     dates = [utils.formatDate(i[4:6], months.index(i[0:3])+1, i[8:12]) for i in dates]
     return parseSwitch(dates, 3)
@@ -99,37 +100,58 @@ def stripTag(tag: bs4.element.Tag | None):
         return ''
     return tag.text.strip()
 
+def formatTime(centiseconds: int, showCenti: bool):
+    minutes = centiseconds // 6000
+    centiseconds = centiseconds % 6000
+    seconds = centiseconds // 100
+    centiseconds = centiseconds % 100
+    centiString = f'.{centiseconds:02}' if showCenti else ''
+    if minutes == 0: return f'{seconds}{centiString}'
+    hours = minutes // 60
+    minutes = minutes % 60
+    hoursString = f'{hours}:' if hours!=0 else ''
+    return f'{hoursString}{minutes}:{seconds:02}{centiString}'
+
+def formatValue(data: dict):
+    # see https://github.com/thewca/worldcubeassociation.org/blob/main/app/webpacker/lib/wca-live/attempts.js
+    value = data['value']
+    event = data['eventName']
+    if 'Multi-Blind' in event:
+        missed = value % 100
+        points = 99 - value // 10000000
+        seconds = value // 100 % 100000
+        return f'{points+missed}/{points+2*missed} {formatTime(seconds*100, showCenti=False)}'
+    elif 'Fewest Moves' in event:
+        if data['type']=='single': return str(value)
+        else: return  f'{value/100:.2f}'
+    else:
+        return formatTime(value, showCenti=True)
+
+def formatDateForJson(data: dict):
+    return f'{months[data['month']-1]} {data['day']:02}, {data['year']}'
+
 def scrape():
     print('Lade worldcubeassociation.org ...')
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'}
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36',  'Accept': 'application/json'}
     result = requests.get('https://www.worldcubeassociation.org/results/records?show=history', headers=headers)
     assert result.ok
-    soup = bs4.BeautifulSoup(result.text, 'html.parser')
-    body = soup.find(id='results-list')
-    assert isinstance(body, bs4.element.Tag)
-    titles = body.find_all('h2')
-    tables = body.find_all('div', {'class': 'table-responsive'})
-    assert len(titles) == len(tables)
+    rows: list[dict] | None = result.json().get('rows')
+    assert rows is not None
     data: dict[str, tuple[list[dict[str, str]], list[dict[str, str]]]] = dict()
-    for title, table in zip(titles, tables):
-        assert isinstance(title, bs4.element.Tag)
-        assert isinstance(table, bs4.element.Tag)
-        tbody = table.find('tbody')
-        assert isinstance(tbody, bs4.element.Tag)
-        results: list[dict[str, str]] = [{'date': stripTag(line.find('td', {'class': 'date'})),
-                                          'single': stripTag(line.find('td', {'class': 'single'})),
-                                          'average': stripTag(line.find('td', {'class': 'average'})),
-                                          'name': stripTag(line.find('td', {'class': 'name'})),
-                                          'competition': stripTag(line.find('td', {'class': 'competition'}))
-                                          } for line in tbody.find_all('tr')]
-        single: list[dict[str, str]] = []
-        average: list[dict[str, str]] = []
-        for res in results:
-            if (res.get('single') != '') and ((single == []) or single[0].get('single') == res.get('single')):
-                single.append(res)
-            if (res.get('average') != '') and ((average == []) or average[0].get('average') == res.get('average')):
-                average.append(res)
-        data[title.text.strip()] = (single, average)
+    for row in rows:
+        event = row.get('eventName')
+        assert event is not None
+        if data.get(event) is None: data[event] = ([], [])
+        type = row.get('type')
+        assert type == 'single' or type == 'average'
+        index = 0 if type == 'single' else 1
+        formatedTime = formatValue(row)
+        if len(data[event][index]) > 0 and formatedTime != data[event][index][0][['single', 'average'][index]]: continue
+        data[event][index].append({'date': formatDateForJson(row),
+                                   'single': formatedTime if type == 'single' else '',
+                                   'average': formatedTime if type == 'average' else '',
+                                   'name': row['personName'],
+                                   'competition': getFullCompetitionName(row['competitionId'])})
     return data
     
 def run():
@@ -147,7 +169,17 @@ def run():
         editWiki(newData, parseNames,  changedDisciplines, 'Vorlage:Speedcubing-Rekordhalter')
     print('Erfolgreich ausgeführt.')
     return changes
-    
+
+def getFullCompetitionName(id: str):
+    res = requests.get(f'https://www.worldcubeassociation.org/competitions/{id}')
+    assert res.ok
+    soup = bs4.BeautifulSoup(res.text, 'html.parser')
+    body = soup.find(id='competition-data')
+    assert body is not None
+    title = body.find('h3')
+    assert type(title) is bs4.Tag
+    return stripTag(title)
+
 if __name__ == '__main__':
     # editWiki(newData, parseEvents, changedDisciplines, 'Benutzer:DerIchBot/Spielwiese/Vorlage:Speedcubing-Rekorddatum', forcedSummary='Tests ...')
     # print(generatePage(newData, parseNames))
