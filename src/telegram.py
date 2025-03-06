@@ -44,6 +44,7 @@ def handleServerError(e: Exception):
         raise e
     if lastServerError < 60 *60 * 3: # 3h
         send(f'WARNING: Ignored Server Error; last one {lastServerError/60:.0f}min ago', silent=True)
+    time.sleep(60)
     
     
 def difflink(change: dict):

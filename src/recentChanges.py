@@ -74,6 +74,9 @@ def monitorRecentChanges():
         except requests.exceptions.HTTPError as e:
             telegram.handleServerError(e)
             monitorRecentChanges()
+        except requests.exceptions.ConnectTimeout as e:
+            telegram.handleServerError(e)
+            monitorRecentChanges()
         except Exception as e:
             e.add_note(f'failed while handling recent change {change.get('revision')} on {change.get('title')}')
             raise e
