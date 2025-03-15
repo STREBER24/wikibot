@@ -37,9 +37,13 @@ def handleException(tag: str):
     
 
 def handleServerError(e: Exception):
-    logging.warning(f'Ignored Server Error\n{traceback.format_exc()}')
-    noFail, lastServerError = utils.checkLastUpdate('ignored-server-error', 60)
-    if not noFail:
+    logging.warning(f'Handle Server Error\n{traceback.format_exc()}')
+    pastServerErrors: list[float] = utils.loadJson('serverErrors.json', [0])
+    lastServerError = time.time()-pastServerErrors[0]
+    pastServerErrors = [i for i in pastServerErrors if (time.time()-i)<60*60*24*7] + [time.time()] # 7d
+    utils.dumpJson('serverErrors.json', pastServerErrors)
+    fail = len([i for i in pastServerErrors if (time.time()-i)<60*30]) > 5 # 30min
+    if fail:
         e.add_note(f'failed on server error; last error {lastServerError/60:.0f}min ago')
         raise e
     if lastServerError < 60 *60 * 3: # 3h
