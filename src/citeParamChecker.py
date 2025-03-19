@@ -229,6 +229,7 @@ def checkPage(site: Any, pagetitle: str, allProblems: list[Problem]):
             for rev in page.revisions(total=50):
                 try:
                     if rev['parentid'] == 0: problem.revision = rev['revid']; break
+                    if 'mw-manual-revert' in rev['tags'] or 'mw-rollback' in rev['tags']: continue
                     timestamp: pywikibot.Timestamp = rev['timestamp']
                     revTimestamp = str(timestamp.year).rjust(4,'0') + '-' + str(timestamp.month).rjust(2,'0') + '-' + str(timestamp.day).rjust(2,'0')
                     oldContent = page.getOldVersion(rev['parentid'])
